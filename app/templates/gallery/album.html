@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ album.title }} · UCT Ballroom{% endblock %}
+{% block content %}
+<p><a class="muted" href="{{ url_for('gallery.albums') }}">&larr; All albums</a></p>
+<h1>{{ album.title }}</h1>
+<p class="muted">{% if album.event_date %}{{ album.event_date }} · {% endif %}{{ album.photo_count }} photo{{ '' if album.photo_count == 1 else 's' }}</p>
+{% if album.description %}<p>{{ album.description }}</p>{% endif %}
+<div id="grid" class="grid" style="--row-h: {{ row_height }}px">
+  {% include "gallery/_tiles.html" %}
+</div>
+{% include "gallery/_sentinel.html" %}
+{% endblock %}

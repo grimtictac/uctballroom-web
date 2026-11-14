@@ -1,0 +1,4 @@
+<div id="more">{% if next_offset is not none %}
+  <div class="more" hx-get="{{ url_for('gallery.album_photos', slug=album.slug, offset=next_offset) }}"
+       hx-trigger="revealed" hx-target="#grid" hx-swap="beforeend">Loading more&hellip;</div>
+{% endif %}</div>

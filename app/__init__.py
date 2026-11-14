@@ -41,6 +41,10 @@ def create_app(test_config=None):
         conn.close()
         click.echo(f"Applied: {applied}" if applied else "Up to date.")
 
+    from .gallery.routes import bp as gallery_bp
+
+    app.register_blueprint(gallery_bp)
+
     @app.get("/healthz")
     def healthz():
         return {"status": "ok"}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% set w = best_width(photo, 1600) %}
+{% set title = photo.caption or ('Photo from ' ~ photo.album_title) %}
+{% block title %}{{ title }} · UCT Ballroom{% endblock %}
+{% block head %}
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{ title }}">
+  <meta property="og:image" content="{{ photo_url(photo, best_width(photo, 1200)) }}">
+  <meta property="og:url" content="{{ url_for('gallery.photo', photo_id=photo.id, _external=True) }}">
+{% endblock %}
+{% block content %}
+<p><a class="muted" href="{{ url_for('gallery.album', slug=photo.album_slug) }}">&larr; {{ photo.album_title }}</a></p>
+<figure class="photo">
+  <img src="{{ photo_url(photo, w) }}" srcset="{{ photo_srcset(photo) }}" sizes="(min-width: 1200px) 1200px, 100vw"
+       width="{{ photo.width }}" height="{{ photo.height }}"
+       style="background-image: url('{{ photo.placeholder }}')"
+       alt="{{ photo.alt or photo.caption or title }}">
+  <figcaption>
+    {% if photo.caption %}<p>{{ photo.caption }}</p>{% endif %}
+    <p class="muted">
+      {% if photo.credit %}Photo: {{ photo.credit }}{% endif %}
+      {% if photo.credit and photo.taken_at %} · {% endif %}
+      {% if photo.taken_at %}{{ photo.taken_at[:10] }}{% endif %}
+    </p>
+  </figcaption>
+</figure>
+<nav class="photo-nav">
+  {% if prev_id %}<a href="{{ url_for('gallery.photo', photo_id=prev_id) }}">&larr; Previous</a>{% else %}<span></span>{% endif %}
+  <a href="{{ original_url(photo) }}" download>Download original</a>
+  {% if next_id %}<a href="{{ url_for('gallery.photo', photo_id=next_id) }}">Next &rarr;</a>{% else %}<span></span>{% endif %}
+</nav>
+{% endblock %}

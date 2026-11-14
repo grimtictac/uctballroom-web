@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}UCT Ballroom{% endblock %}</title>
+  {% block head %}{% endblock %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+  <script src="{{ url_for('static', filename='vendor/htmx.min.js') }}" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="{{ url_for('gallery.albums') }}">UCT Ballroom</a>
+    <nav><a href="{{ url_for('gallery.albums') }}">Gallery</a></nav>
+  </header>
+  <main>{% block content %}{% endblock %}</main>
+  <footer class="site-footer">&copy; UCT Ballroom</footer>
+</body>
+</html>

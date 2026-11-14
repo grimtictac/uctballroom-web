@@ -1,0 +1,5 @@
+{% include "gallery/_tiles.html" %}
+<div id="more" hx-swap-oob="true">{% if next_offset is not none %}
+  <div class="more" hx-get="{{ url_for('gallery.album_photos', slug=album.slug, offset=next_offset) }}"
+       hx-trigger="revealed" hx-target="#grid" hx-swap="beforeend">Loading more&hellip;</div>
+{% endif %}</div>
