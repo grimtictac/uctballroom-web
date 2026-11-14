@@ -90,3 +90,13 @@ def test_captions_are_escaped(gallery, client):
     conn.execute("UPDATE photos SET caption = '<script>x</script>' WHERE id = 1")
     conn.commit()
     assert "<script>x</script>" not in client.get("/photo/1").text
+
+
+def test_album_page_wires_lightbox(gallery, client):
+    html = client.get("/albums/oweek").text
+    assert "vendor/photoswipe/photoswipe.css" in html and "js/gallery.js" in html
+    assert 'data-photo-id="1"' in html and 'data-page="/photo/1"' in html
+    assert 'data-original="https://cdn.example/albums/oweek/k0/original.jpg"' in html
+    assert 'data-caption="Caption 0"' in html and 'data-credit="Sam"' in html
+    assert 'data-pswp-src="https://cdn.example/albums/oweek/k0/800.webp"' in html
+    assert 'data-pswp-width="800"' in html and 'data-pswp-height="533"' in html

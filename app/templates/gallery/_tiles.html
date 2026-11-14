@@ -3,6 +3,8 @@
 {% set big = best_width(p, 1600) %}
 <a class="tile" href="{{ url_for('gallery.photo', photo_id=p.id) }}"
    style="--ar: {{ '%.4f' % ar }}; background-image: url('{{ p.placeholder }}')"
+   data-photo-id="{{ p.id }}" data-page="{{ url_for('gallery.photo', photo_id=p.id) }}"
+   data-original="{{ original_url(p) }}" data-caption="{{ p.caption or '' }}" data-credit="{{ p.credit or '' }}"
    data-pswp-src="{{ photo_url(p, big) }}" data-pswp-width="{{ big if big <= p.width else p.width }}"
    data-pswp-height="{{ ((big if big <= p.width else p.width) / ar) | round | int }}">
   <img src="{{ photo_url(p, best_width(p, 400)) }}" srcset="{{ photo_srcset(p) }}"

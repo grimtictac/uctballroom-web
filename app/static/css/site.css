@@ -44,3 +44,11 @@ main { padding: 1rem var(--gutter) 3rem; }
 .photo figcaption { margin-top: .75rem; }
 .photo-nav { display: flex; justify-content: space-between; margin-top: 1rem; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* PhotoSwipe additions */
+.pswp { --pswp-bg: #05060d; }
+.pswp__custom-caption { position: absolute; left: 0; right: 0; bottom: 0; z-index: 10; padding: 2.5rem 1.25rem 1rem;
+  background: linear-gradient(transparent, rgb(0 0 0 / .7)); color: #fff; text-align: center; pointer-events: none; }
+.pswp__custom-caption p { margin: 0; }
+.pswp__custom-caption .caption-credit { color: #cfcfdc; font-size: .875rem; }
+.pswp__button { color: #fff; }
