@@ -8,6 +8,12 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 APP=/srv/uctballroom
 
+# Small droplets (512 MB) need swap for image processing and installs. No-op if swap exists.
+if ! swapon --show | grep -q .; then
+  fallocate -l 1G /swapfile && chmod 600 /swapfile && mkswap /swapfile >/dev/null && swapon /swapfile
+  grep -q '^/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+
 apt-get update -y
 apt-get install -y git curl sqlite3 ufw debian-keyring debian-archive-keyring apt-transport-https gpg
 
@@ -67,6 +73,10 @@ fi
 # Service + Caddy
 install -m 644 "$APP/app/deploy/uctballroom.service" /etc/systemd/system/uctballroom.service
 sed "s/__DOMAIN__/$DOMAIN/g" "$APP/app/deploy/Caddyfile" > /etc/caddy/Caddyfile
+# www.example.com: also redirect the bare domain (needs its own DNS A record).
+if [[ "$DOMAIN" == www.* ]]; then
+  printf '\n%s {\n\tredir https://%s{uri} permanent\n}\n' "${DOMAIN#www.}" "$DOMAIN" >> /etc/caddy/Caddyfile
+fi
 systemctl daemon-reload
 systemctl enable uctballroom
 systemctl restart uctballroom

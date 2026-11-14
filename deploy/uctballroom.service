@@ -7,6 +7,8 @@ User=uctballroom
 Group=uctballroom
 WorkingDirectory=/srv/uctballroom/app
 EnvironmentFile=/srv/uctballroom/.env
+# Settings come from systemd; stop the flask CLI trying to read the (root-only) .env itself.
+Environment=FLASK_SKIP_DOTENV=1
 # Apply any pending SQL migrations before serving (idempotent).
 ExecStartPre=/srv/uctballroom/app/.venv/bin/flask --app app migrate
 ExecStart=/srv/uctballroom/app/.venv/bin/gunicorn --workers 2 --bind 127.0.0.1:8000 --access-logfile - "app:create_app()"
