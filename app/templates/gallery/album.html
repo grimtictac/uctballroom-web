@@ -7,10 +7,10 @@
   <script type="module" src="{{ url_for('static', filename='js/gallery.js') }}"></script>
 {% endblock %}
 {% block content %}
-<p><a class="muted" href="{{ url_for('gallery.albums') }}">&larr; All albums</a></p>
-<h1>{{ album.title }}</h1>
-<p class="muted">{% if album.event_date %}{{ album.event_date }} · {% endif %}{{ album.photo_count }} photo{{ '' if album.photo_count == 1 else 's' }}</p>
-{% if album.description %}<p>{{ album.description }}</p>{% endif %}
+<p class="eyebrow rise" style="--d: 0"><a href="{{ url_for('gallery.albums') }}">&larr; All albums</a></p>
+<h1 class="rise" style="--d: 1">{{ album.title }}</h1>
+<p class="muted rise" style="--d: 2">{% if album.event_date %}{{ album.event_date }} · {% endif %}{{ album.photo_count }} photo{{ '' if album.photo_count == 1 else 's' }}</p>
+{% if album.description %}<p class="prose">{{ album.description }}</p>{% endif %}
 <div id="grid" class="grid" style="--row-h: {{ row_height }}px">
   {% include "gallery/_tiles.html" %}
 </div>

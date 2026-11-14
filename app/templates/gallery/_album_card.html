@@ -1,0 +1,8 @@
+<a class="album-card" href="{{ url_for('gallery.album', slug=a.slug) }}">
+  <div class="cover"{% if a.cover %} style="background-image: url('{{ a.cover.placeholder }}')"{% endif %}>
+    {% if a.cover %}<img src="{{ photo_url(a.cover, best_width(a.cover, 800)) }}" loading="lazy"
+         width="{{ a.cover.width }}" height="{{ a.cover.height }}" alt="">{% endif %}
+  </div>
+  <h3>{{ a.title }}</h3>
+  <p class="muted">{% if a.event_date %}{{ a.event_date }} · {% endif %}{{ a.photo_count }} photo{{ '' if a.photo_count == 1 else 's' }}</p>
+</a>

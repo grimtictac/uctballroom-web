@@ -42,7 +42,9 @@ def create_app(test_config=None):
         click.echo(f"Applied: {applied}" if applied else "Up to date.")
 
     from .gallery.routes import bp as gallery_bp
+    from .pages import bp as pages_bp
 
+    app.register_blueprint(pages_bp)
     app.register_blueprint(gallery_bp)
 
     @app.get("/healthz")

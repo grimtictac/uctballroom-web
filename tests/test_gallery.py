@@ -31,10 +31,6 @@ def test_album_list(gallery, client):
     assert "https://cdn.example/albums/oweek/k0/800.webp" in html
 
 
-def test_index_redirects_to_albums(gallery, client):
-    assert client.get("/").headers["Location"].endswith("/albums/")
-
-
 def test_album_page_first_page_and_sentinel(gallery, client):
     html = client.get("/albums/oweek").text
     assert html.count('class="tile"') == 3

@@ -4,7 +4,7 @@
 PHOTO_ORDER = "p.sort_order IS NULL, p.sort_order, p.taken_at IS NULL, p.taken_at, p.id"
 
 
-def list_albums(conn):
+def list_albums(conn, limit=None):
     rows = conn.execute(
         """SELECT a.id, a.slug, a.title, a.description, a.event_date,
                   c.base_key AS cover_key, c.variants AS cover_variants,
@@ -12,7 +12,9 @@ def list_albums(conn):
                   c.original_ext AS cover_ext,
                   (SELECT COUNT(*) FROM photos p WHERE p.album_id = a.id) AS photo_count
            FROM albums a LEFT JOIN photos c ON c.id = a.cover_photo_id
-           ORDER BY a.event_date IS NULL, a.event_date DESC, a.created_at DESC, a.id DESC"""
+           ORDER BY a.event_date IS NULL, a.event_date DESC, a.created_at DESC, a.id DESC
+           LIMIT ?""",
+        (limit if limit else -1,),  # -1 = no limit in SQLite
     ).fetchall()
     albums = []
     for r in rows:

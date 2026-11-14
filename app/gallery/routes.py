@@ -1,4 +1,4 @@
-from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, render_template, request
 
 from ..db import get_db
 from ..storage import get_storage
@@ -39,11 +39,6 @@ def helpers():
         "original_url": original_url,
         "row_height": ROW_HEIGHT,
     }
-
-
-@bp.get("/")
-def index():
-    return redirect(url_for("gallery.albums"))
 
 
 @bp.get("/albums/")

@@ -1,20 +1,58 @@
+{% macro navlink(prefix, endpoint, label, cls='') -%}
+  <a href="{{ url_for(endpoint) }}" class="{{ cls }}"{% if (request.endpoint or '').startswith(prefix) %} aria-current="page"{% endif %}>{{ label }}</a>
+{%- endmacro %}
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}UCT Ballroom{% endblock %}</title>
+  <meta name="description" content="{% block description %}UCT Ballroom: the university ballroom and Latin dance society.{% endblock %}">
+  <meta name="theme-color" content="#0a1128">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+  <script>try{if(localStorage.getItem("theme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
+  <link rel="preload" href="{{ url_for('static', filename='fonts/inter-latin-wght-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{{ url_for('static', filename='fonts/cormorant-garamond-latin-500-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
   {% block head %}{% endblock %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
   <script src="{{ url_for('static', filename='vendor/htmx.min.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/site.js') }}" defer></script>
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
-    <a class="brand" href="{{ url_for('gallery.albums') }}">UCT Ballroom</a>
-    <nav><a href="{{ url_for('gallery.albums') }}">Gallery</a></nav>
+    <div class="container header-inner">
+      <a class="brand" href="{{ url_for('pages.home') }}" aria-label="UCT Ballroom home">{% include "_logo.html" %}</a>
+      <nav class="nav" aria-label="Main">
+        {{ navlink('gallery.', 'gallery.albums', 'Gallery') }}
+        {{ navlink('pages.events', 'pages.events', 'Events') }}
+        {{ navlink('pages.about', 'pages.about', 'About') }}
+        {{ navlink('pages.join', 'pages.join', 'Join us', 'nav-cta') }}
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light and dark theme" aria-pressed="false">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z" fill="currentColor"/></svg>
+        </button>
+      </nav>
+    </div>
   </header>
-  <main>{% block content %}{% endblock %}</main>
-  <footer class="site-footer">&copy; UCT Ballroom</footer>
+  <main id="main">
+    {% block hero %}{% endblock %}
+    <div class="container page">{% block content %}{% endblock %}</div>
+  </main>
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <p class="footer-brand">UCT Ballroom</p>
+        <p class="muted">&copy; {{ current_year }} UCT Ballroom</p>
+      </div>
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="{{ url_for('gallery.albums') }}">Gallery</a>
+        <a href="{{ url_for('pages.events') }}">Events</a>
+        <a href="{{ url_for('pages.about') }}">About</a>
+        <a href="{{ url_for('pages.join') }}">Join us</a>
+      </nav>
+    </div>
+  </footer>
   {% block scripts %}{% endblock %}
 </body>
 </html>

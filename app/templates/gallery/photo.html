@@ -9,7 +9,7 @@
   <meta property="og:url" content="{{ url_for('gallery.photo', photo_id=photo.id, _external=True) }}">
 {% endblock %}
 {% block content %}
-<p><a class="muted" href="{{ url_for('gallery.album', slug=photo.album_slug) }}">&larr; {{ photo.album_title }}</a></p>
+<p class="eyebrow"><a href="{{ url_for('gallery.album', slug=photo.album_slug) }}">&larr; {{ photo.album_title }}</a></p>
 <figure class="photo">
   <img src="{{ photo_url(photo, w) }}" srcset="{{ photo_srcset(photo) }}" sizes="(min-width: 1200px) 1200px, 100vw"
        width="{{ photo.width }}" height="{{ photo.height }}"
