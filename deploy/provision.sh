@@ -82,6 +82,33 @@ systemctl enable uctballroom
 systemctl restart uctballroom
 systemctl reload caddy || systemctl restart caddy
 
+# Litestream: continuous SQLite backup to a private Space. Only when BACKUP_BUCKET is set.
+LITESTREAM_VERSION=0.5.18
+LITESTREAM_SHA256=11d36a2d2058731ee99f201f6b68a52fcb1dd3050bdfd2237f7f39741dafe6ae  # from the release's checksums.txt
+if [ -n "${BACKUP_BUCKET:-}" ]; then
+  if ! command -v litestream >/dev/null || ! litestream version 2>/dev/null | grep -q "$LITESTREAM_VERSION"; then
+    curl -fsSL -o /tmp/litestream.deb \
+      "https://github.com/benbjohnson/litestream/releases/download/v${LITESTREAM_VERSION}/litestream-${LITESTREAM_VERSION}-linux-x86_64.deb"
+    echo "$LITESTREAM_SHA256  /tmp/litestream.deb" | sha256sum -c -
+    dpkg -i /tmp/litestream.deb
+    rm -f /tmp/litestream.deb
+  fi
+  sed -e "s/__BACKUP_BUCKET__/$BACKUP_BUCKET/g" -e "s/__BACKUP_REGION__/${BACKUP_REGION:-lon1}/g" \
+    "$APP/app/deploy/litestream.yml" > /etc/litestream.yml
+  install -m 644 "$APP/app/deploy/litestream.service" /etc/systemd/system/litestream.service
+  if [ ! -f /etc/litestream.env ]; then
+    printf 'LITESTREAM_ACCESS_KEY_ID=\nLITESTREAM_SECRET_ACCESS_KEY=\n' > /etc/litestream.env
+    chmod 600 /etc/litestream.env
+  fi
+  systemctl daemon-reload
+  if grep -qE '^LITESTREAM_ACCESS_KEY_ID=.+' /etc/litestream.env && grep -qE '^LITESTREAM_SECRET_ACCESS_KEY=.+' /etc/litestream.env; then
+    systemctl enable litestream
+    systemctl restart litestream
+  else
+    echo ">>> Add the backup credentials to /etc/litestream.env, then: systemctl enable --now litestream"
+  fi
+fi
+
 # Firewall
 ufw allow OpenSSH >/dev/null; ufw allow 80/tcp >/dev/null; ufw allow 443/tcp >/dev/null
 ufw --force enable >/dev/null

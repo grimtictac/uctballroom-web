@@ -1,0 +1,14 @@
+# Rendered by provision.sh: __BACKUP_BUCKET__ and __BACKUP_REGION__ are replaced.
+# Credentials come from the environment (LITESTREAM_ACCESS_KEY_ID / LITESTREAM_SECRET_ACCESS_KEY),
+# loaded from /etc/litestream.env by the systemd unit.
+
+# Keep a full snapshot every day for a week. Between snapshots, changes are streamed
+# continuously, so a restore can land within seconds of the latest write.
+snapshot:
+  interval: 24h
+  retention: 168h
+
+dbs:
+  - path: /srv/uctballroom/data/app.db
+    replica:
+      url: s3://__BACKUP_BUCKET__/app.db?endpoint=__BACKUP_REGION__.digitaloceanspaces.com&region=__BACKUP_REGION__

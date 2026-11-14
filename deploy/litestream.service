@@ -1,0 +1,22 @@
+[Unit]
+Description=Litestream (continuous SQLite replication to a Space)
+After=network-online.target uctballroom.service
+Wants=network-online.target
+
+[Service]
+# Same user as the app so -wal/-shm files are never created with the wrong owner.
+User=uctballroom
+Group=uctballroom
+EnvironmentFile=/etc/litestream.env
+ExecStart=/usr/bin/litestream replicate -config /etc/litestream.yml
+Restart=always
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/uctballroom/data
+
+[Install]
+WantedBy=multi-user.target
