@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "UCT Ballroom society website"
 requires-python = ">=3.11"
 dependencies = [
+    "boto3>=1.44.3",
     "flask>=3.0",
     "python-dotenv>=1.0",
 ]

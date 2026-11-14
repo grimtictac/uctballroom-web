@@ -18,6 +18,12 @@ def create_app(test_config=None):
         SECRET_KEY=os.environ.get("SECRET_KEY", "dev"),
         DATABASE=os.environ.get("DATABASE", str(ROOT / "data" / "app.db")),
         MIGRATIONS_DIR=str(ROOT / "migrations"),
+        SPACES_KEY=os.environ.get("SPACES_KEY"),
+        SPACES_SECRET=os.environ.get("SPACES_SECRET"),
+        SPACES_BUCKET=os.environ.get("SPACES_BUCKET"),
+        SPACES_REGION=os.environ.get("SPACES_REGION"),
+        SPACES_PUBLIC_BASE_URL=os.environ.get("SPACES_PUBLIC_BASE_URL"),
+        SPACES_PREFIX=os.environ.get("SPACES_PREFIX", ""),
     )
     if test_config:
         app.config.update(test_config)
