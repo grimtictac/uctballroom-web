@@ -1,0 +1,24 @@
+[Unit]
+Description=UCT Ballroom website (gunicorn)
+After=network.target
+
+[Service]
+User=uctballroom
+Group=uctballroom
+WorkingDirectory=/srv/uctballroom/app
+EnvironmentFile=/srv/uctballroom/.env
+# Apply any pending SQL migrations before serving (idempotent).
+ExecStartPre=/srv/uctballroom/app/.venv/bin/flask --app app migrate
+ExecStart=/srv/uctballroom/app/.venv/bin/gunicorn --workers 2 --bind 127.0.0.1:8000 --access-logfile - "app:create_app()"
+Restart=on-failure
+RestartSec=3
+
+# Hardening: the service can only write to its data directory.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/uctballroom/data
+
+[Install]
+WantedBy=multi-user.target

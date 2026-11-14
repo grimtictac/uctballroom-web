@@ -28,6 +28,8 @@ def create_app(test_config=None):
     )
     if test_config:
         app.config.update(test_config)
+    if os.environ.get("APP_ENV") == "production" and app.config["SECRET_KEY"] in (None, "", "dev"):
+        raise RuntimeError("SECRET_KEY must be set to a real secret when APP_ENV=production")
     Path(app.config["DATABASE"]).parent.mkdir(parents=True, exist_ok=True)
 
     app.teardown_appcontext(db.close_db)

@@ -1,0 +1,22 @@
+# Rendered by provision.sh: __DOMAIN__ is replaced with the real domain.
+# Caddy obtains and renews the HTTPS certificate automatically.
+__DOMAIN__ {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	# Static files straight from disk, cached hard (fonts and vendored libs never change in place).
+	handle /static/* {
+		root * /srv/uctballroom/app/app
+		header Cache-Control "public, max-age=86400"
+		file_server
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:8000
+	}
+}
