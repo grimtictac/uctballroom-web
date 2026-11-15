@@ -32,7 +32,7 @@ def test_pages_render(storage, client, path):
     assert "UCT Ballroom" in html
     assert 'id="theme-toggle"' in html and "js/site.js" in html
     assert 'data-theme="dark"' in html  # dark by default
-    assert "fonts/inter-latin-wght-normal.woff2" in html
+    assert "fonts/dm-sans-latin-wght-normal.woff2" in html
 
 
 def test_home_without_albums_has_no_hero_image(storage, client):
