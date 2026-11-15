@@ -1,6 +1,3 @@
-{% macro navlink(prefix, endpoint, label, cls='') -%}
-  <a href="{{ url_for(endpoint) }}" class="{{ cls }}"{% if (request.endpoint or '').startswith(prefix) %} aria-current="page"{% endif %}>{{ label }}</a>
-{%- endmacro %}
 <!doctype html>
 <html lang="en" data-theme="dark">
 <head>
@@ -25,16 +22,12 @@
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand" href="{{ url_for('pages.home') }}" aria-label="UCT Ballroom and Latin Dancing Society home">{% include "_logo.html" %}</a>
-      <nav class="nav" aria-label="Main">
-        {{ navlink('gallery.', 'gallery.albums', 'Gallery') }}
-        {{ navlink('pages.events', 'pages.events', 'Events') }}
-        {{ navlink('pages.about', 'pages.about', 'About') }}
-        {{ navlink('pages.join', 'pages.join', 'Join us', 'nav-cta') }}
+      <div class="nav">
         <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light and dark theme" aria-pressed="false">
           <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
           <svg class="icon-moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z" fill="currentColor"/></svg>
         </button>
-      </nav>
+      </div>
     </div>
   </header>
   <main id="main">
@@ -44,15 +37,8 @@
   <footer class="site-footer">
     <div class="container footer-inner">
       <div>
-        <p class="footer-brand"><span class="logo-mark logo-mark--sm" aria-hidden="true"></span>UCT Ballroom and Latin Dancing Society</p>
         <p class="muted">&copy; {{ current_year }} UCT Ballroom and Latin Dancing Society</p>
       </div>
-      <nav class="footer-nav" aria-label="Footer">
-        <a href="{{ url_for('gallery.albums') }}">Gallery</a>
-        <a href="{{ url_for('pages.events') }}">Events</a>
-        <a href="{{ url_for('pages.about') }}">About</a>
-        <a href="{{ url_for('pages.join') }}">Join us</a>
-      </nav>
     </div>
   </footer>
   {% block scripts %}{% endblock %}

@@ -26,7 +26,7 @@ def add_album(app, slug, title, date=None, with_cover=True):
     conn.close()
 
 
-@pytest.mark.parametrize("path", ["/", "/about", "/join", "/events", "/albums/"])
+@pytest.mark.parametrize("path", ["/", "/albums/"])
 def test_pages_render(storage, client, path):
     html = client.get(path).text
     assert "UCT Ballroom" in html
@@ -38,6 +38,7 @@ def test_pages_render(storage, client, path):
 def test_home_without_albums_has_no_hero_image(storage, client):
     html = client.get("/").text
     assert "Dance with us." in html and "Photos are on their way." in html
+    assert "New to ballroom" not in html
     assert 'fetchpriority="high"' not in html
 
 
@@ -63,31 +64,27 @@ def test_album_without_cover_still_renders(app, storage, client):
     assert "Bare" in client.get("/albums/").text
 
 
-@pytest.mark.parametrize(
-    "path,label",
-    [("/albums/", "Gallery"), ("/events", "Events"), ("/about", "About"), ("/join", "Join us")],
-)
-def test_nav_marks_current_page(storage, client, path, label):
-    html = client.get(path).text
-    assert html.count('aria-current="page"') == 1
-    assert f'aria-current="page">{label}</a>' in html
+def test_removed_pages_are_gone(storage, client):
+    for path in ("/about", "/join", "/events"):
+        assert client.get(path).status_code == 404
 
 
-def test_home_marks_no_nav_item_current(storage, client):
-    assert 'aria-current="page"' not in client.get("/").text
+def test_no_top_menu_links(storage, client):
+    html = client.get("/").text
+    assert 'aria-label="Main"' not in html and 'aria-label="Footer"' not in html
 
 
 def test_footer_year(storage, client):
     from datetime import date
 
-    assert f"&copy; {date.today().year} UCT Ballroom" in client.get("/about").text
+    assert f"&copy; {date.today().year} UCT Ballroom" in client.get("/").text
 
 
 def test_logo_and_icons_wired_in(storage, client, app):
     from pathlib import Path
 
     html = client.get("/").text
-    assert 'class="logo-mark"' in html and "logo-mark logo-mark--sm" in html
+    assert 'class="logo-mark"' in html
     for f in ("favicon-32.png", "icon-192.png", "apple-touch-icon.png"):
         assert f"img/{f}" in html
         assert client.get(f"/static/img/{f}").status_code == 200

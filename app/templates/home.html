@@ -14,8 +14,7 @@
     <h1 class="rise" style="--d: 1">Dance with us.</h1>
     <p class="lead rise" style="--d: 2">Weekly lessons, socials and competitions for every level, from your very first waltz to the dance floor regulars.</p>
     <div class="actions rise" style="--d: 3">
-      <a class="btn btn-primary" href="{{ url_for('pages.join') }}">Join us</a>
-      <a class="btn btn-ghost" href="{{ url_for('gallery.albums') }}">See the gallery</a>
+      <a class="btn btn-primary" href="{{ url_for('gallery.albums') }}">See the gallery</a>
     </div>
   </div>
 </section>
@@ -33,10 +32,5 @@
   {% else %}
   <p class="muted">Photos are on their way.</p>
   {% endif %}
-</section>
-<section class="section cta">
-  <h2>New to ballroom?</h2>
-  <p class="lead">No partner or experience needed. Come along to a beginner session and see.</p>
-  <a class="btn btn-primary" href="{{ url_for('pages.join') }}">Become a member</a>
 </section>
 {% endblock %}

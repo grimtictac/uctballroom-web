@@ -1,4 +1,4 @@
-"""Static-ish site pages: home, about, join, events."""
+"""Site pages: just the home page for now."""
 from datetime import date
 
 from flask import Blueprint, render_template
@@ -19,17 +19,3 @@ def home():
     albums = queries.list_albums(get_db(), limit=3)
     return render_template("home.html", albums=albums)
 
-
-@bp.get("/about")
-def about():
-    return render_template("about.html")
-
-
-@bp.get("/join")
-def join():
-    return render_template("join.html")
-
-
-@bp.get("/events")
-def events():
-    return render_template("events.html")
