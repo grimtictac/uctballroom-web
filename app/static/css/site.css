@@ -100,12 +100,6 @@ p { margin: 0 0 1em; }
 .nav a[aria-current="page"] { border-bottom-color: var(--accent); }
 .nav a.nav-cta { color: var(--accent-ink); background: var(--accent); padding: .4rem 1rem; border-radius: 999px; border: 0; font-weight: 600; }
 .nav a.nav-cta:hover { background: var(--accent-hover); color: var(--accent-ink); }
-.theme-toggle { display: grid; place-items: center; width: 2.4rem; height: 2.4rem; border-radius: 50%; cursor: pointer;
-  border: 1px solid var(--line); background: transparent; color: var(--text); transition: background .2s, border-color .2s; }
-.theme-toggle:hover { background: var(--surface); border-color: var(--accent); }
-.theme-toggle .icon-sun { display: none; }
-:root[data-theme="light"] .theme-toggle .icon-sun { display: block; }
-:root[data-theme="light"] .theme-toggle .icon-moon { display: none; }
 
 .site-footer { border-top: 1px solid var(--line); background: var(--bg-elev); padding-block: 2.5rem; margin-top: auto; }
 .footer-inner { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; }

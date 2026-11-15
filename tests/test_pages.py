@@ -30,7 +30,7 @@ def add_album(app, slug, title, date=None, with_cover=True):
 def test_pages_render(storage, client, path):
     html = client.get(path).text
     assert "UCT Ballroom" in html
-    assert 'id="theme-toggle"' in html and "js/site.js" in html
+    assert "theme-toggle" not in html and "js/site.js" not in html
     assert 'data-theme="dark"' in html  # dark by default
     assert "fonts/dm-sans-latin-wght-normal.woff2" in html
 

@@ -9,25 +9,17 @@
   <link rel="icon" href="{{ url_for('static', filename='img/favicon-32.png') }}" type="image/png" sizes="32x32">
   <link rel="icon" href="{{ url_for('static', filename='img/icon-192.png') }}" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
-  <script>try{if(localStorage.getItem("theme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
   <link rel="preload" href="{{ url_for('static', filename='fonts/dm-sans-latin-wght-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="{{ url_for('static', filename='fonts/bevan-latin-400-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
   {% block head %}{% endblock %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
   <script src="{{ url_for('static', filename='vendor/htmx.min.js') }}" defer></script>
-  <script src="{{ url_for('static', filename='js/site.js') }}" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand" href="{{ url_for('pages.home') }}" aria-label="UCT Ballroom and Latin Dancing Society home">{% include "_logo.html" %}</a>
-      <div class="nav">
-        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light and dark theme" aria-pressed="false">
-          <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-          <svg class="icon-moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z" fill="currentColor"/></svg>
-        </button>
-      </div>
     </div>
   </header>
   <main id="main">
