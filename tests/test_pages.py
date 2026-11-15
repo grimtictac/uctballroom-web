@@ -10,18 +10,15 @@ def storage(app):
     app.extensions["storage"] = Storage(FakeClient(), "b", "https://cdn.example")
 
 
-def add_album(app, slug, title, date=None, with_cover=True):
+def add_photos(app, slug, n, title="Home"):
     conn = db.connect(app.config["DATABASE"])
-    aid = conn.execute(
-        "INSERT INTO albums (slug, title, event_date) VALUES (?, ?, ?)", (slug, title, date)
-    ).lastrowid
-    if with_cover:
-        pid = conn.execute(
+    aid = conn.execute("INSERT INTO albums (slug, title) VALUES (?, ?)", (slug, title)).lastrowid
+    for i in range(n):
+        conn.execute(
             """INSERT INTO photos (album_id, base_key, width, height, placeholder, original_ext, variants)
                VALUES (?, ?, 1800, 1200, 'data:image/webp;base64,AAAA', 'jpg', '400,800,1600')""",
-            (aid, f"albums/{slug}/k"),
-        ).lastrowid
-        conn.execute("UPDATE albums SET cover_photo_id = ? WHERE id = ?", (pid, aid))
+            (aid, f"albums/{slug}/k{i}"),
+        )
     conn.commit()
     conn.close()
 
@@ -44,29 +41,37 @@ def test_home_has_only_the_headline(storage, client):
 
 
 def test_home_hero_is_always_the_stall_photo(app, storage, client):
-    add_album(app, "new", "New Album", "2027-02-20")
+    add_photos(app, "home", 1)
     html = client.get("/").text
     assert 'class="hero-media"' in html and "img/hero-1148.webp" in html
-    assert "albums/new/k/1600.webp" not in html  # album covers never become the hero
     assert 'fetchpriority="high"' in html
 
 
-def test_home_lists_every_album(app, storage, client):
-    for i in range(5):
-        add_album(app, f"a{i}", f"Album {i}", f"2027-01-0{i + 1}")
+def test_home_shows_home_album_photos_edge_to_edge(app, storage, client):
+    add_photos(app, "home", 3)
+    add_photos(app, "other", 2, title="Other")
     html = client.get("/").text
-    assert html.count('class="album-card"') == 5
+    assert html.count('class="tile"') == 3 and "grid--bleed" in html
+    assert "albums/home/k0/" in html and "albums/other/" not in html  # only the home album
+    assert "js/gallery.js" in html and "photoswipe.css" in html
+
+
+def test_home_pages_in_more_photos(app, storage, client):
+    app.config["GALLERY_PAGE_SIZE"] = 2
+    add_photos(app, "home", 5)
+    html = client.get("/").text
+    assert html.count('class="tile"') == 2
+    assert 'hx-get="/albums/home/photos?offset=2"' in html
+
+
+def test_home_without_a_home_album_is_just_the_hero(storage, client):
+    html = client.get("/").text
+    assert 'id="grid"' not in html and "Got two left feet" in html
 
 
 def test_albums_url_redirects_home(client):
     r = client.get("/albums/")
     assert r.status_code == 302 and r.headers["Location"] == "/"
-
-
-def test_album_without_cover_still_renders(app, storage, client):
-    add_album(app, "bare", "Bare", with_cover=False)
-    assert client.get("/").status_code == 200
-    assert "Bare" in client.get("/").text
 
 
 def test_removed_pages_are_gone(storage, client):

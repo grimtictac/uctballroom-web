@@ -46,7 +46,7 @@ def albums():
     return redirect(url_for("pages.home"))
 
 
-def _page(album, offset):
+def page_of(album, offset):
     size = current_app.config.get("GALLERY_PAGE_SIZE", 60)
     photos, has_more = queries.album_photos(get_db(), album["id"], size, offset)
     return photos, (offset + size if has_more else None)
@@ -55,7 +55,7 @@ def _page(album, offset):
 @bp.get("/albums/<slug>")
 def album(slug):
     album = queries.get_album(get_db(), slug) or abort(404)
-    photos, next_offset = _page(album, 0)
+    photos, next_offset = page_of(album, 0)
     return render_template("gallery/album.html", album=album, photos=photos,
                            next_offset=next_offset)
 
@@ -64,7 +64,7 @@ def album(slug):
 def album_photos(slug):
     """htmx fragment: the next page of tiles plus an out-of-band replacement of the sentinel."""
     album = queries.get_album(get_db(), slug) or abort(404)
-    photos, next_offset = _page(album, max(0, request.args.get("offset", 0, type=int)))
+    photos, next_offset = page_of(album, max(0, request.args.get("offset", 0, type=int)))
     return render_template("gallery/_page.html", album=album, photos=photos,
                            next_offset=next_offset)
 

@@ -135,19 +135,11 @@ p { margin: 0 0 1em; }
   padding: clamp(2rem, 6vw, 4rem) var(--gutter); margin-top: 2rem; }
 .cta .lead { margin-inline: auto; }
 
-/* ---- Albums --------------------------------------------------------------- */
-.album-list { display: grid; gap: 2rem 1.5rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); margin-top: 1.5rem; }
-.album-card { text-decoration: none; display: block; }
-.album-card h3 { margin: .8rem 0 .1rem; transition: color .2s; }
-.album-card:hover h3 { color: var(--accent); }
-.album-card p { margin: 0; font-size: .875rem; }
-.cover { aspect-ratio: 3 / 2; overflow: hidden; border-radius: var(--radius); background: var(--surface) center / cover;
-  box-shadow: var(--shadow); }
-.cover img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s var(--ease); }
-.album-card:hover .cover img { transform: scale(1.05); }
-
+/* ---- Photo grid ----------------------------------------------------------- */
 /* Justified rows: each tile's width follows its aspect ratio and rows stretch to fill. */
 .grid { display: flex; flex-wrap: wrap; gap: var(--gap); margin-top: 1.5rem; }
+.grid--bleed { margin: 0; gap: 3px; }  /* front page: edge to edge, no side margin */
+.grid--bleed .tile { border-radius: 0; }
 .grid::after { content: ""; flex-grow: 1000000; }  /* keeps the last row from stretching */
 .tile { --row-h: 240px; display: block; position: relative; overflow: hidden; border-radius: 3px;
   flex: calc(var(--ar) * 100) 1 calc(var(--ar) * var(--row-h)); aspect-ratio: var(--ar);

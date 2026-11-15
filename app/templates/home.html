@@ -11,8 +11,17 @@
   </div>
 </section>
 {% endblock %}
-{% block content %}
-<div class="album-list">
-  {% for a in albums %}{% include "gallery/_album_card.html" %}{% endfor %}
+{% block head %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/photoswipe/photoswipe.css') }}">
+{% endblock %}
+{% block scripts %}
+  <script type="module" src="{{ url_for('static', filename='js/gallery.js') }}"></script>
+{% endblock %}
+{% block full %}
+{% if album %}
+<div id="grid" class="grid grid--bleed" style="--row-h: {{ row_height }}px">
+  {% include "gallery/_tiles.html" %}
 </div>
+{% include "gallery/_sentinel.html" %}
+{% endif %}
 {% endblock %}
