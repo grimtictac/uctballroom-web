@@ -26,7 +26,7 @@ def gallery(app):
 
 
 def test_album_list(gallery, client):
-    html = client.get("/albums/").text
+    html = client.get("/").text
     assert "O-Week" in html and "7 photos" in html and "0 photos" in html
     assert "https://cdn.example/albums/oweek/k0/800.webp" in html
 

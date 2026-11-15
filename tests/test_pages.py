@@ -26,7 +26,7 @@ def add_album(app, slug, title, date=None, with_cover=True):
     conn.close()
 
 
-@pytest.mark.parametrize("path", ["/", "/albums/"])
+@pytest.mark.parametrize("path", ["/"])
 def test_pages_render(storage, client, path):
     html = client.get(path).text
     assert "UCT Ballroom" in html
@@ -35,31 +35,38 @@ def test_pages_render(storage, client, path):
     assert "fonts/dm-sans-latin-wght-normal.woff2" in html
 
 
-def test_home_without_albums(storage, client):
+def test_home_has_only_the_headline(storage, client):
     html = client.get("/").text
-    assert "Dance with us." in html and "Photos are on their way." in html
-    assert "New to ballroom" not in html
+    assert "Got two left feet, we'll put one right!" in html
+    for gone in ("Dance with us", "Ballroom &amp; Latin society", "Weekly lessons", "See the gallery",
+                 "Latest albums", "All albums", "Photos are on their way", "New to ballroom"):
+        assert gone not in html
 
 
-def test_home_hero_background_is_stall_photo(app, storage, client):
+def test_home_hero_is_always_the_stall_photo(app, storage, client):
     add_album(app, "new", "New Album", "2027-02-20")
     html = client.get("/").text
     assert 'class="hero-media"' in html and "img/tent-1440.webp" in html
+    assert "albums/new/k/1600.webp" not in html  # album covers never become the hero
     assert 'fetchpriority="high"' in html
-    assert "New Album" in html  # still listed under Latest albums
 
 
-def test_home_limits_to_three_albums(app, storage, client):
+def test_home_lists_every_album(app, storage, client):
     for i in range(5):
         add_album(app, f"a{i}", f"Album {i}", f"2027-01-0{i + 1}")
     html = client.get("/").text
-    assert html.count('class="album-card"') == 3
+    assert html.count('class="album-card"') == 5
+
+
+def test_albums_url_redirects_home(client):
+    r = client.get("/albums/")
+    assert r.status_code == 302 and r.headers["Location"] == "/"
 
 
 def test_album_without_cover_still_renders(app, storage, client):
     add_album(app, "bare", "Bare", with_cover=False)
     assert client.get("/").status_code == 200
-    assert "Bare" in client.get("/albums/").text
+    assert "Bare" in client.get("/").text
 
 
 def test_removed_pages_are_gone(storage, client):

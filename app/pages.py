@@ -16,6 +16,6 @@ def site_context():
 
 @bp.get("/")
 def home():
-    albums = queries.list_albums(get_db(), limit=3)
+    albums = queries.list_albums(get_db())
     return render_template("home.html", albums=albums)
 
