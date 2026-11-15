@@ -46,7 +46,7 @@ def test_home_has_only_the_headline(storage, client):
 def test_home_hero_is_always_the_stall_photo(app, storage, client):
     add_album(app, "new", "New Album", "2027-02-20")
     html = client.get("/").text
-    assert 'class="hero-media"' in html and "img/tent-1440.webp" in html
+    assert 'class="hero-media"' in html and "img/hero-1148.webp" in html
     assert "albums/new/k/1600.webp" not in html  # album covers never become the hero
     assert 'fetchpriority="high"' in html
 

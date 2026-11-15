@@ -120,19 +120,17 @@ p { margin: 0 0 1em; }
 .btn-ghost:hover { border-color: var(--accent); color: var(--text); }
 
 /* ---- Home ----------------------------------------------------------------- */
-.hero { position: relative; isolation: isolate; overflow: clip; display: grid; align-items: end; color: #fff;
-  min-height: clamp(32rem, 85vh, 50rem); padding-block: 4rem 3.5rem; }
-.hero-media { position: absolute; inset: 0; z-index: -1; background:
-  radial-gradient(60rem 30rem at 80% 0%, #2a4bb0 0%, transparent 60%), linear-gradient(160deg, #0f1d4a, #0a1128); }
-.hero-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 70%; }
-.hero-media::after { content: ""; position: absolute; inset: 0;
-  background: linear-gradient(to bottom, rgb(6 10 26 / .25), transparent 25%, rgb(6 10 26 / .8) 70%, var(--hero-end) 100%); }
-.hero-inner { text-shadow: 0 1px 12px rgb(6 10 26 / .7); }
-.hero h1 { max-width: 18ch; margin-bottom: .35em; }
-.hero .lead { color: rgb(255 255 255 / .82); margin-bottom: 2rem; }
-.hero .eyebrow { color: #b3cdff; }
-.hero .btn-ghost { border-color: rgb(255 255 255 / .55); color: #fff; }
-.hero .btn-ghost:hover { background: rgb(255 255 255 / .12); border-color: #fff; }
+/* Hero: the whole (re-cropped) photo, never cropped further, so nobody is cut off at any size. It is as wide
+   as fits in one screen height, centred, with soft edges; the headline sits below it. */
+.hero { --hero-ratio: 1148 / 623; padding-bottom: 2.5rem; }
+.hero-media { aspect-ratio: var(--hero-ratio); width: min(100%, calc((100vh - 13rem) * 1148 / 623)); margin-inline: auto;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent), linear-gradient(to bottom, #000 92%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent), linear-gradient(to bottom, #000 92%, transparent);
+  mask-composite: intersect; }
+.hero-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.hero-inner { margin-top: 1rem; }
+.hero h1 { max-width: 22ch; margin: 0; }
 .actions { display: flex; gap: .8rem; flex-wrap: wrap; }
 .section { padding-block: clamp(2rem, 5vw, 4rem); }
 .section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; margin-bottom: 1.5rem; }
@@ -190,8 +188,4 @@ p { margin: 0 0 1em; }
 @media (max-width: 560px) {
   .header-inner { justify-content: center; }
   .nav { width: 100%; justify-content: space-between; gap: .5rem; font-size: .9rem; }
-  /* Phone: show the whole photo (4:3, so nobody is cropped out), with the headline over its bottom fade. */
-  .hero { display: block; min-height: 0; padding-block: 0 2rem; }
-  .hero-media { position: relative; inset: auto; aspect-ratio: 4 / 3; }
-  .hero-inner { margin-top: -3rem; position: relative; }
 }
