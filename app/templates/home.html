@@ -20,6 +20,12 @@
 </section>
 {% endblock %}
 {% block content %}
+<figure class="feature">
+  <img src="{{ url_for('static', filename='img/tent-1440.webp') }}"
+       srcset="{{ url_for('static', filename='img/tent-720.webp') }} 720w, {{ url_for('static', filename='img/tent-1440.webp') }} 1440w"
+       sizes="(min-width: 1200px) 1100px, 100vw" width="1440" height="1080"
+       alt="Members of the society smiling at their stall under a blue gazebo, with a trophy and dance shoes on the table" loading="lazy">
+</figure>
 <section class="section">
   <div class="section-head">
     <h2>Latest albums</h2>

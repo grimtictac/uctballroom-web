@@ -90,3 +90,9 @@ def test_logo_and_icons_wired_in(storage, client, app):
         assert client.get(f"/static/img/{f}").status_code == 200
     assert client.get("/static/img/logo-mark.png").status_code == 200
     assert 'url("../img/logo-mark.png")' in (Path(app.root_path) / "static/css/site.css").read_text()
+
+
+def test_home_shows_stall_photo(storage, client):
+    html = client.get("/").text
+    assert "img/tent-1440.webp" in html and "img/tent-720.webp" in html
+    assert client.get("/static/img/tent-720.webp").status_code == 200
