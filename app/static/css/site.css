@@ -93,7 +93,7 @@ p { margin: 0 0 1em; }
 .logo-mark--sm { height: 2.4rem; vertical-align: middle; margin-right: .6rem; }
 .brand .logo-mark { transition: transform .5s var(--ease); }
 .brand:hover .logo-mark { transform: rotate(-6deg) scale(1.04); }
-.logo-text { font-family: var(--font-display); font-size: 1.2rem; font-weight: 400; letter-spacing: .01em; }
+.logo-text { font-family: var(--font-display); font-size: 1rem; font-weight: 400; line-height: 1.15; max-width: 24ch; }
 .nav { display: flex; align-items: center; gap: clamp(.9rem, 2.5vw, 1.8rem); font-size: .95rem; }
 .nav a { text-decoration: none; color: var(--muted); padding-block: .3rem; border-bottom: 1px solid transparent; transition: color .2s, border-color .2s; }
 .nav a:hover, .nav a[aria-current="page"] { color: var(--text); }

@@ -6,7 +6,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}UCT Ballroom{% endblock %}</title>
+  <title>{% block title %}UCT Ballroom and Latin Dancing Society{% endblock %}</title>
   <meta name="description" content="{% block description %}UCT Ballroom: the university ballroom and Latin dance society.{% endblock %}">
   <meta name="theme-color" content="#0a1128">
   <link rel="icon" href="{{ url_for('static', filename='img/favicon-32.png') }}" type="image/png" sizes="32x32">
@@ -24,7 +24,7 @@
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
     <div class="container header-inner">
-      <a class="brand" href="{{ url_for('pages.home') }}" aria-label="UCT Ballroom home">{% include "_logo.html" %}</a>
+      <a class="brand" href="{{ url_for('pages.home') }}" aria-label="UCT Ballroom and Latin Dancing Society home">{% include "_logo.html" %}</a>
       <nav class="nav" aria-label="Main">
         {{ navlink('gallery.', 'gallery.albums', 'Gallery') }}
         {{ navlink('pages.events', 'pages.events', 'Events') }}
@@ -44,8 +44,8 @@
   <footer class="site-footer">
     <div class="container footer-inner">
       <div>
-        <p class="footer-brand"><span class="logo-mark logo-mark--sm" aria-hidden="true"></span>UCT Ballroom</p>
-        <p class="muted">&copy; {{ current_year }} UCT Ballroom</p>
+        <p class="footer-brand"><span class="logo-mark logo-mark--sm" aria-hidden="true"></span>UCT Ballroom and Latin Dancing Society</p>
+        <p class="muted">&copy; {{ current_year }} UCT Ballroom and Latin Dancing Society</p>
       </div>
       <nav class="footer-nav" aria-label="Footer">
         <a href="{{ url_for('gallery.albums') }}">Gallery</a>

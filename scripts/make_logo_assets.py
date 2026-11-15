@@ -16,6 +16,7 @@ OUT = ROOT / "app" / "static" / "img"
 
 NAVY = (10, 17, 40, 255)
 LIGHT = (233, 237, 249, 255)
+TILE = (138, 180, 255, 255)  # the site accent, --accent in site.css
 
 
 def load_alpha():
@@ -40,15 +41,17 @@ def as_mask_png(alpha):
 
 
 def icon(alpha, size, pad_ratio=0.12):
-    """Rounded navy square with the light logo, for favicons and the touch icon."""
+    """Rounded light-blue tile with the navy logo, for favicons and the touch icon.
+
+    Light tile so it stays visible on dark browser tabs (a navy tile looked black there)."""
     scale = 4  # draw big, then downsample for smooth edges
     s = size * scale
     canvas = Image.new("RGBA", (s, s), (0, 0, 0, 0))
-    ImageDraw.Draw(canvas).rounded_rectangle((0, 0, s - 1, s - 1), radius=s // 5, fill=NAVY)
+    ImageDraw.Draw(canvas).rounded_rectangle((0, 0, s - 1, s - 1), radius=s // 5, fill=TILE)
     inner = int(s * (1 - 2 * pad_ratio))
     logo = alpha.copy()
     logo.thumbnail((inner, inner), Image.LANCZOS)
-    glyph = Image.new("RGBA", logo.size, LIGHT)
+    glyph = Image.new("RGBA", logo.size, NAVY)
     glyph.putalpha(logo)
     canvas.alpha_composite(glyph, ((s - logo.width) // 2, (s - logo.height) // 2))
     return canvas.resize((size, size), Image.LANCZOS)
