@@ -140,6 +140,7 @@ p { margin: 0 0 1em; }
 .grid { display: flex; flex-wrap: wrap; gap: var(--gap); margin-top: 1.5rem; }
 .grid--bleed { margin: 0; gap: 3px; }  /* front page: edge to edge, no side margin */
 .grid--bleed .tile { border-radius: 0; }
+.grid--bleed::after { display: none; }  /* front page: the last row stretches to the full width too */
 .grid::after { content: ""; flex-grow: 1000000; }  /* keeps the last row from stretching */
 .tile { --row-h: 240px; display: block; position: relative; overflow: hidden; border-radius: 3px;
   flex: calc(var(--ar) * 100) 1 calc(var(--ar) * var(--row-h)); aspect-ratio: var(--ar);
