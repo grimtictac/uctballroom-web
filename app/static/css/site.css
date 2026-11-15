@@ -5,12 +5,10 @@
    the header toggle (html[data-theme="light"]).
    ========================================================================== */
 
-@font-face { font-family: "Cormorant Garamond"; font-weight: 500; font-style: normal; font-display: swap;
-  src: url("../fonts/cormorant-garamond-latin-500-normal.woff2") format("woff2"); }
-@font-face { font-family: "Cormorant Garamond"; font-weight: 600; font-style: normal; font-display: swap;
-  src: url("../fonts/cormorant-garamond-latin-600-normal.woff2") format("woff2"); }
-@font-face { font-family: "Cormorant Garamond"; font-weight: 500; font-style: italic; font-display: swap;
-  src: url("../fonts/cormorant-garamond-latin-500-italic.woff2") format("woff2"); }
+@font-face { font-family: "Bevan"; font-weight: 400; font-style: normal; font-display: swap;
+  src: url("../fonts/bevan-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Bevan"; font-weight: 400; font-style: italic; font-display: swap;
+  src: url("../fonts/bevan-latin-400-italic.woff2") format("woff2"); }
 @font-face { font-family: "Inter"; font-weight: 100 900; font-style: normal; font-display: swap;
   src: url("../fonts/inter-latin-wght-normal.woff2") format("woff2"); }
 
@@ -29,7 +27,7 @@
   --shadow: 0 14px 36px rgb(0 0 0 / .4);
   --hero-end: var(--bg);  /* dark: hero fades seamlessly into the page */
 
-  --font-display: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --font-display: "Bevan", Georgia, "Times New Roman", serif;
   --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --gutter: clamp(1.1rem, 4vw, 3rem);
   --max: 1280px;
@@ -63,9 +61,9 @@ img { max-width: 100%; }
 a { color: inherit; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: .2em; }
 a:hover { color: var(--accent); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
-h1, h2, h3 { font-family: var(--font-display); font-weight: 500; line-height: 1.1; letter-spacing: -.01em; margin: 0 0 .5em; }
-h1 { font-size: clamp(2.6rem, 6vw + 1rem, 5rem); margin-bottom: .3em; }
-h2 { font-size: clamp(1.8rem, 2.5vw + 1rem, 2.6rem); }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 400; line-height: 1.15; letter-spacing: 0; margin: 0 0 .5em; }
+h1 { font-size: clamp(2.1rem, 5vw + .8rem, 4rem); margin-bottom: .3em; }
+h2 { font-size: clamp(1.5rem, 2vw + 1rem, 2.1rem); }
 h3 { font-size: 1.4rem; }
 p { margin: 0 0 1em; }
 .muted { color: var(--muted); }
@@ -95,7 +93,7 @@ p { margin: 0 0 1em; }
 .logo-mark--sm { height: 2.4rem; vertical-align: middle; margin-right: .6rem; }
 .brand .logo-mark { transition: transform .5s var(--ease); }
 .brand:hover .logo-mark { transform: rotate(-6deg) scale(1.04); }
-.logo-text { font-family: var(--font-display); font-size: 1.45rem; font-weight: 600; letter-spacing: .01em; }
+.logo-text { font-family: var(--font-display); font-size: 1.2rem; font-weight: 400; letter-spacing: .01em; }
 .nav { display: flex; align-items: center; gap: clamp(.9rem, 2.5vw, 1.8rem); font-size: .95rem; }
 .nav a { text-decoration: none; color: var(--muted); padding-block: .3rem; border-bottom: 1px solid transparent; transition: color .2s, border-color .2s; }
 .nav a:hover, .nav a[aria-current="page"] { color: var(--text); }
