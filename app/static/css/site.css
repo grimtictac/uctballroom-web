@@ -80,7 +80,7 @@ p { margin: 0 0 1em; }
 
 /* ---- Header / footer ------------------------------------------------------ */
 .site-header { position: sticky; top: 0; z-index: 50; background: var(--bg);
-  box-shadow: 0 0 1.75rem 1.25rem var(--bg); }  /* soft fade into the page instead of a hard edge */
+  box-shadow: 0 0 1.25rem .75rem var(--bg); }  /* soft fade into the page instead of a hard edge */
 .header-inner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding-block: 1rem; }
 .brand { display: inline-flex; align-items: center; gap: .6rem; text-decoration: none; color: var(--text); }
 /* The logo is a single-colour alpha shape, drawn as a mask so it takes the theme's text colour. */
@@ -120,14 +120,10 @@ p { margin: 0 0 1em; }
 .btn-ghost:hover { border-color: var(--accent); color: var(--text); }
 
 /* ---- Home ----------------------------------------------------------------- */
-/* Hero: the whole (re-cropped) photo, never cropped further, so nobody is cut off at any size. It is as wide
-   as fits in one screen height, centred, with soft edges; the headline sits below it. */
-.hero { --hero-ratio: 1148 / 623; padding-bottom: 2.5rem; }
-.hero-media { aspect-ratio: var(--hero-ratio); width: min(100%, calc((100vh - 13rem) * 1148 / 623)); margin-inline: auto;
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent), linear-gradient(to bottom, #000 92%, transparent);
-  -webkit-mask-composite: source-in;
-  mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent), linear-gradient(to bottom, #000 92%, transparent);
-  mask-composite: intersect; }
+/* Hero: the whole re-cropped photo, full width at every size, never cropped further, so nobody is cut off.
+   The headline sits below it. The top gap keeps the header's soft shadow off the photo. */
+.hero { padding-bottom: 2.5rem; }
+.hero-media { aspect-ratio: 1148 / 623; width: 100%; margin-top: 1.5rem; }
 .hero-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .hero-inner { margin-top: 1rem; }
 .hero h1 { max-width: 22ch; margin: 0; }
