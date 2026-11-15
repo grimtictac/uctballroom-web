@@ -81,3 +81,15 @@ def test_footer_year(storage, client):
     from datetime import date
 
     assert f"&copy; {date.today().year} UCT Ballroom" in client.get("/about").text
+
+
+def test_logo_and_icons_wired_in(storage, client, app):
+    from pathlib import Path
+
+    html = client.get("/").text
+    assert 'class="logo-mark"' in html and "logo-mark logo-mark--sm" in html
+    for f in ("favicon-32.png", "icon-192.png", "apple-touch-icon.png"):
+        assert f"img/{f}" in html
+        assert client.get(f"/static/img/{f}").status_code == 200
+    assert client.get("/static/img/logo-mark.png").status_code == 200
+    assert 'url("../img/logo-mark.png")' in (Path(app.root_path) / "static/css/site.css").read_text()
