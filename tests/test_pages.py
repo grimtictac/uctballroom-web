@@ -34,7 +34,7 @@ def test_pages_render(storage, client, path):
 
 def test_home_has_only_the_headline(storage, client):
     html = client.get("/").text
-    assert "Got two left feet, we'll put one right!" in html
+    assert "Got two left feet?<br>We'll make one right!" in html
     for gone in ("Dance with us", "Ballroom &amp; Latin society", "Weekly lessons", "See the gallery",
                  "Latest albums", "All albums", "Photos are on their way", "New to ballroom"):
         assert gone not in html
