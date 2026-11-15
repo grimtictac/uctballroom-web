@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block title %}{{ album.title }} · UCT Ballroom{% endblock %}
 {% block head %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/photoswipe/photoswipe.css') }}">
+  <link rel="stylesheet" href="{{ asset('vendor/photoswipe/photoswipe.css') }}">
 {% endblock %}
 {% block scripts %}
-  <script type="module" src="{{ url_for('static', filename='js/gallery.js') }}"></script>
+  <script type="module" src="{{ asset('js/gallery.js') }}"></script>
 {% endblock %}
 {% block content %}
 <p class="eyebrow rise" style="--d: 0"><a href="{{ url_for('pages.home') }}" aria-label="Back to the albums">&larr;</a></p>

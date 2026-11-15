@@ -1,7 +1,9 @@
 """Site pages: just the home page for now."""
 from datetime import date
+from functools import cache
+from pathlib import Path
 
-from flask import Blueprint, render_template
+from flask import Blueprint, current_app, render_template, url_for
 
 from .db import get_db
 from .gallery import queries
@@ -12,9 +14,24 @@ bp = Blueprint("pages", __name__)
 HOME_ALBUM = "home"  # slug of the album whose photos fill the front page
 
 
+@cache
+def _file_version(path):
+    try:
+        return int(Path(path).stat().st_mtime)
+    except OSError:
+        return 0
+
+
+def asset(filename):
+    """Static file URL stamped with the file's modification time, so a changed file is never served from
+    a browser's cache (static files are cached for a day, and a stale stylesheet breaks the new HTML)."""
+    version = _file_version(str(Path(current_app.static_folder) / filename))
+    return url_for("static", filename=filename, v=version)
+
+
 @bp.app_context_processor
 def site_context():
-    return {"current_year": date.today().year}
+    return {"current_year": date.today().year, "asset": asset}
 
 
 @bp.get("/")

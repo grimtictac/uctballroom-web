@@ -100,3 +100,13 @@ def test_logo_and_icons_wired_in(storage, client, app):
         assert client.get(f"/static/img/{f}").status_code == 200
     assert client.get("/static/img/logo-mark.png").status_code == 200
     assert 'url("../img/logo-mark.png")' in (Path(app.root_path) / "static/css/site.css").read_text()
+
+
+def test_static_urls_are_version_stamped(storage, client):
+    import re
+
+    html = client.get("/").text
+    assert re.search(r'/static/css/site\.css\?v=\d+', html)
+    assert re.search(r'/static/js/gallery\.js\?v=\d+', html)
+    assert not re.search(r'/static/[^"?]+"', html.replace("/static/vendor", ""))  # every asset URL carries ?v=
+    assert client.get("/static/css/site.css?v=1").status_code == 200

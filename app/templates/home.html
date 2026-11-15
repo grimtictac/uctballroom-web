@@ -2,8 +2,8 @@
 {% block hero %}
 <section class="hero">
   <div class="hero-media">
-    <img src="{{ url_for('static', filename='img/hero-1148.webp') }}"
-         srcset="{{ url_for('static', filename='img/hero-574.webp') }} 574w, {{ url_for('static', filename='img/hero-1148.webp') }} 1148w"
+    <img src="{{ asset('img/hero-1148.webp') }}"
+         srcset="{{ asset('img/hero-574.webp') }} 574w, {{ asset('img/hero-1148.webp') }} 1148w"
          sizes="100vw" alt="" width="1148" height="623" fetchpriority="high">
   </div>
   <div class="container hero-inner">
@@ -12,10 +12,10 @@
 </section>
 {% endblock %}
 {% block head %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/photoswipe/photoswipe.css') }}">
+  <link rel="stylesheet" href="{{ asset('vendor/photoswipe/photoswipe.css') }}">
 {% endblock %}
 {% block scripts %}
-  <script type="module" src="{{ url_for('static', filename='js/gallery.js') }}"></script>
+  <script type="module" src="{{ asset('js/gallery.js') }}"></script>
 {% endblock %}
 {% block full %}
 {% if album %}
