@@ -120,16 +120,14 @@ p { margin: 0 0 1em; }
 .btn-ghost:hover { border-color: var(--accent); color: var(--text); }
 
 /* ---- Home ----------------------------------------------------------------- */
-.hero { position: relative; isolation: isolate; overflow: clip; display: grid; align-items: center; color: #fff;
-  min-height: clamp(30rem, 78vh, 46rem); padding-block: 4rem 6rem; }
+.hero { position: relative; isolation: isolate; overflow: clip; display: grid; align-items: end; color: #fff;
+  min-height: clamp(32rem, 85vh, 50rem); padding-block: 4rem 3.5rem; }
 .hero-media { position: absolute; inset: 0; z-index: -1; background:
   radial-gradient(60rem 30rem at 80% 0%, #2a4bb0 0%, transparent 60%), linear-gradient(160deg, #0f1d4a, #0a1128); }
-.hero-media img { position: absolute; left: 0; width: 100%; top: -10%; height: 120%; object-fit: cover; }
+.hero-media img { position: absolute; left: 0; width: 100%; top: -10%; height: 120%; object-fit: cover; object-position: center 100%; }
 .hero-media::after { content: ""; position: absolute; inset: 0;
-  background: linear-gradient(to bottom, rgb(6 10 26 / .5), rgb(6 10 26 / .68) 65%, var(--hero-end)); }
-.feature { margin: 0 0 3rem; border-radius: var(--radius, 14px); overflow: hidden; background: var(--surface); }
-.feature img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; object-position: center bottom; }
-@media (min-width: 700px) { .feature img { aspect-ratio: 16 / 9; } }
+  background: linear-gradient(to bottom, rgb(6 10 26 / .25), transparent 25%, rgb(6 10 26 / .8) 70%, var(--hero-end) 100%); }
+.hero-inner { text-shadow: 0 1px 12px rgb(6 10 26 / .7); }
 .hero h1 { max-width: 14ch; margin-bottom: .35em; }
 .hero .lead { color: rgb(255 255 255 / .82); margin-bottom: 2rem; }
 .hero .eyebrow { color: #b3cdff; }

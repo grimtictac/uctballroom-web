@@ -35,20 +35,18 @@ def test_pages_render(storage, client, path):
     assert "fonts/dm-sans-latin-wght-normal.woff2" in html
 
 
-def test_home_without_albums_has_no_hero_image(storage, client):
+def test_home_without_albums(storage, client):
     html = client.get("/").text
     assert "Dance with us." in html and "Photos are on their way." in html
     assert "New to ballroom" not in html
-    assert 'fetchpriority="high"' not in html
 
 
-def test_home_uses_latest_album_cover_as_hero(app, storage, client):
-    add_album(app, "old", "Old Album", "2026-01-01")
+def test_home_hero_background_is_stall_photo(app, storage, client):
     add_album(app, "new", "New Album", "2027-02-20")
     html = client.get("/").text
+    assert 'class="hero-media"' in html and "img/tent-1440.webp" in html
     assert 'fetchpriority="high"' in html
-    assert "albums/new/k/1600.webp" in html  # hero is the newest album's cover
-    assert "New Album" in html and "Old Album" in html
+    assert "New Album" in html  # still listed under Latest albums
 
 
 def test_home_limits_to_three_albums(app, storage, client):
@@ -90,9 +88,3 @@ def test_logo_and_icons_wired_in(storage, client, app):
         assert client.get(f"/static/img/{f}").status_code == 200
     assert client.get("/static/img/logo-mark.png").status_code == 200
     assert 'url("../img/logo-mark.png")' in (Path(app.root_path) / "static/css/site.css").read_text()
-
-
-def test_home_shows_stall_photo(storage, client):
-    html = client.get("/").text
-    assert "img/tent-1440.webp" in html and "img/tent-720.webp" in html
-    assert client.get("/static/img/tent-720.webp").status_code == 200

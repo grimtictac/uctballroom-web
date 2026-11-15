@@ -1,13 +1,10 @@
 {% extends "base.html" %}
-{% set featured = albums | selectattr('cover') | list %}
-{% set hero = featured[0] if featured else none %}
 {% block hero %}
 <section class="hero">
   <div class="hero-media">
-    {% if hero %}
-    <img src="{{ photo_url(hero.cover, best_width(hero.cover, 1600)) }}" alt="" fetchpriority="high"
-         width="{{ hero.cover.width }}" height="{{ hero.cover.height }}">
-    {% endif %}
+    <img src="{{ url_for('static', filename='img/tent-1440.webp') }}"
+         srcset="{{ url_for('static', filename='img/tent-720.webp') }} 720w, {{ url_for('static', filename='img/tent-1440.webp') }} 1440w"
+         sizes="100vw" alt="" width="1440" height="1080" fetchpriority="high">
   </div>
   <div class="container hero-inner">
     <p class="eyebrow rise" style="--d: 0">Ballroom &amp; Latin society</p>
@@ -20,12 +17,6 @@
 </section>
 {% endblock %}
 {% block content %}
-<figure class="feature">
-  <img src="{{ url_for('static', filename='img/tent-1440.webp') }}"
-       srcset="{{ url_for('static', filename='img/tent-720.webp') }} 720w, {{ url_for('static', filename='img/tent-1440.webp') }} 1440w"
-       sizes="(min-width: 1200px) 1100px, 100vw" width="1440" height="1080"
-       alt="Members of the society smiling at their stall under a blue gazebo, with a trophy and dance shoes on the table" loading="lazy">
-</figure>
 <section class="section">
   <div class="section-head">
     <h2>Latest albums</h2>
