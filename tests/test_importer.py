@@ -57,3 +57,27 @@ def test_bad_slug_rejected(app):
     conn = db.connect(app.config["DATABASE"])
     with pytest.raises(ValueError):
         get_or_create_album(conn, "Bad Slug")
+
+
+def test_photos_follow_filename_order_not_date_taken(app, tmp_path):
+    from app.gallery import queries
+
+    folder = tmp_path / "ordered"
+    folder.mkdir()
+    # Filename order is the reverse of date-taken order.
+    (folder / "001.jpg").write_bytes(make_jpeg((1000, 800), taken="2025:09:01 20:00:00"))
+    (folder / "002.jpg").write_bytes(make_jpeg((1001, 800), taken="2025:01:01 20:00:00"))
+    client = FakeClient()
+    storage, conn = Storage(client, "b", "https://cdn.example"), db.connect(app.config["DATABASE"])
+    import_folder(conn, storage, folder, "home")
+    album = queries.get_album(conn, "home")
+    photos, _ = queries.album_photos(conn, album["id"], 10, 0)
+    assert [p["width"] for p in photos] == [1000, 1001]
+
+    # A later batch is appended after what is already there.
+    later = tmp_path / "later"
+    later.mkdir()
+    (later / "000.jpg").write_bytes(make_jpeg((1002, 800), taken="2020:01:01 20:00:00"))
+    import_folder(conn, storage, later, "home")
+    photos, _ = queries.album_photos(conn, album["id"], 10, 0)
+    assert [p["width"] for p in photos] == [1000, 1001, 1002]

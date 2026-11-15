@@ -30,7 +30,7 @@ def get_or_create_album(conn, slug, title=None, event_date=None):
     return cur.lastrowid
 
 
-def import_photo(conn, storage, album_id, album_slug, data, credit=None):
+def import_photo(conn, storage, album_id, album_slug, data, credit=None, sort_order=None):
     """Import one photo. Returns the new photo id, or None if it was already imported."""
     sha = hashlib.sha256(data).hexdigest()
     if conn.execute(
@@ -48,10 +48,10 @@ def import_photo(conn, storage, album_id, album_slug, data, credit=None):
         )
         cur = conn.execute(
             """INSERT INTO photos (album_id, base_key, width, height, credit, taken_at,
-                                   placeholder, original_ext, variants, source_sha256)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                                   placeholder, original_ext, variants, source_sha256, sort_order)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (album_id, base_key, p.width, p.height, credit, p.taken_at, p.placeholder,
-             p.original_ext, ",".join(map(str, p.variants)), sha),
+             p.original_ext, ",".join(map(str, p.variants)), sha, sort_order),
         )
         conn.execute(
             "UPDATE albums SET cover_photo_id = ? WHERE id = ? AND cover_photo_id IS NULL",
@@ -70,9 +70,14 @@ def import_folder(conn, storage, folder, slug, title=None, credit=None, event_da
     album_id = get_or_create_album(conn, slug, title, event_date)
     summary = {"imported": 0, "skipped": 0, "failed": 0}
     files = sorted(p for p in Path(folder).iterdir() if p.suffix.lower() in PHOTO_SUFFIXES)
+    # Photos show in filename order: number them after whatever the album already holds.
+    order = conn.execute(
+        "SELECT COALESCE(MAX(sort_order), 0) FROM photos WHERE album_id = ?", (album_id,)
+    ).fetchone()[0]
     for path in files:
         try:
-            photo_id = import_photo(conn, storage, album_id, slug, path.read_bytes(), credit)
+            photo_id = import_photo(conn, storage, album_id, slug, path.read_bytes(), credit,
+                                    sort_order=order + 1)
         except UnsupportedImage as e:
             summary["failed"] += 1
             log(f"FAILED  {path.name}: {e}")
@@ -82,6 +87,7 @@ def import_folder(conn, storage, folder, slug, title=None, credit=None, event_da
             log(f"skipped {path.name} (already imported)")
         else:
             summary["imported"] += 1
+            order += 1
             log(f"ok      {path.name} -> photo {photo_id}")
     return summary
 
