@@ -117,7 +117,10 @@ def test_work_processes_uploads_and_returns_a_record(tmp_path):
     res = ib.work((str(f), "home", "abc", 5))
     rec = res["record"]
     assert rec["sort_order"] == 5 and rec["sha256"] == "abc" and rec["variants"] == "400,800"
-    assert rec["base_key"].startswith("albums/home/")
+    assert rec["base_key"] == "albums/home/p-abc"
+    original = client.objects[f"{rec['base_key']}/original.jpg"]
+    assert original["ContentDisposition"].startswith('attachment; filename="p.jpg"')
+    assert "ContentDisposition" not in client.objects[f"{rec['base_key']}/400.webp"]
     assert set(client.objects) == {f"{rec['base_key']}/{n}" for n in ("400.webp", "800.webp", "original.jpg")}
     assert res["sent"] == sum(len(o["Body"]) for o in client.objects.values())
 

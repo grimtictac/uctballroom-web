@@ -26,7 +26,8 @@ class Storage:
         key = key.lstrip("/")
         return f"{self.prefix}/{key}" if self.prefix else key
 
-    def upload(self, key, data, content_type, cache_control=CACHE_CONTROL):
+    def upload(self, key, data, content_type, cache_control=CACHE_CONTROL, content_disposition=None):
+        extra = {"ContentDisposition": content_disposition} if content_disposition else {}
         self.client.put_object(
             Bucket=self.bucket,
             Key=self._key(key),
@@ -34,6 +35,7 @@ class Storage:
             ContentType=content_type,
             CacheControl=cache_control,
             ACL="public-read",
+            **extra,
         )
 
     def public_url(self, key):

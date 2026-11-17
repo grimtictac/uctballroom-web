@@ -102,3 +102,23 @@ def test_register_photos_and_album_state_roundtrip(app):
     conn = db.connect(app.config["DATABASE"])
     album = conn.execute("SELECT * FROM albums WHERE slug = 'x'").fetchone()
     assert album["title"] == "X" and album["cover_photo_id"] is not None
+
+
+def test_photo_base_key_is_readable_and_safe():
+    from app.importer import download_disposition, photo_base_key
+    sha = "6cef721b4765aaaa"
+    assert photo_base_key("iv26", "08-37-45-000_IMG_3662.jpg", sha) == "albums/iv26/08-37-45-000_IMG_3662-6cef721b"
+    assert photo_base_key("a", "my photo (1) #2.JPG", sha) == "albums/a/my_photo_1_2-6cef721b"
+    assert photo_base_key("a", "...", sha) == "albums/a/photo-6cef721b"
+    assert photo_base_key("a", "x" * 200 + ".jpg", sha).count("x") == 80
+    assert photo_base_key("a", "IMG.jpg", "1" * 16) != photo_base_key("a", "IMG.jpg", "2" * 16)  # edited re-export
+    d = download_disposition('Sam "S" é.jpg')
+    assert d == 'attachment; filename="Sam _S_ _.jpg"; filename*=UTF-8\'\'Sam%20%22S%22%20%C3%A9.jpg'
+
+
+def test_server_side_import_uses_the_readable_key_and_download_name(app, tmp_path):
+    folder, client, storage, conn = setup(app, tmp_path, n=1)
+    import_folder(conn, storage, folder, "o-week")
+    base = conn.execute("SELECT base_key FROM photos").fetchone()[0]
+    assert base.startswith("albums/o-week/p0-") and len(base.rsplit("-", 1)[1]) == 8
+    assert client.objects[f"{base}/original.jpg"]["ContentDisposition"].startswith('attachment; filename="p0.jpg"')

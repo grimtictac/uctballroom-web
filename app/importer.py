@@ -5,6 +5,7 @@ import re
 import secrets
 import sys
 from pathlib import Path
+from urllib.parse import quote
 
 import click
 from flask import current_app
@@ -32,6 +33,20 @@ def get_or_create_album(conn, slug, title=None, event_date=None):
     return cur.lastrowid
 
 
+def photo_base_key(slug, filename, sha):
+    """Readable, collision-proof folder for one photo: the cleaned file name plus a short content
+    fingerprint, e.g. albums/iv26-medals/08-37-45-000_IMG_3662-6cef721b. A re-exported file gets a new
+    key (the files are cached as immutable) and re-importing the same file lands on the same key."""
+    stem = re.sub(r"[^A-Za-z0-9._-]+", "_", Path(filename).stem).strip("._-")[:80] or "photo"
+    return f"albums/{slug}/{stem}-{sha[:8]}"
+
+
+def download_disposition(filename):
+    """Content-Disposition that makes the original download under its real file name."""
+    ascii_name = re.sub(r"[^A-Za-z0-9._ -]", "_", filename)
+    return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(filename)}"
+
+
 def record_of(p, base_key, sha, sort_order):
     """The database fields of a processed photo (also the wire format for register-photos)."""
     return {"base_key": base_key, "width": p.width, "height": p.height, "taken_at": p.taken_at,
@@ -39,13 +54,14 @@ def record_of(p, base_key, sha, sort_order):
             "variants": ",".join(map(str, p.variants)), "sha256": sha, "sort_order": sort_order}
 
 
-def upload_photo(storage, base_key, p):
+def upload_photo(storage, base_key, p, filename=None):
     """Upload every variant plus the original. Returns the bytes sent."""
     sent = 0
     for width, blob in p.variants.items():
         storage.upload(f"{base_key}/{width}.webp", blob, "image/webp")
         sent += len(blob)
-    storage.upload(f"{base_key}/original.{p.original_ext}", p.original, CONTENT_TYPE[p.original_ext])
+    storage.upload(f"{base_key}/original.{p.original_ext}", p.original, CONTENT_TYPE[p.original_ext],
+                   content_disposition=download_disposition(filename) if filename else None)
     return sent + len(p.original)
 
 
@@ -66,7 +82,7 @@ def insert_photo(conn, album_id, rec, credit=None):
     return cur.lastrowid
 
 
-def import_photo(conn, storage, album_id, album_slug, data, credit=None, sort_order=None):
+def import_photo(conn, storage, album_id, album_slug, data, credit=None, sort_order=None, filename=None):
     """Import one photo. Returns the new photo id, or None if it was already imported."""
     sha = hashlib.sha256(data).hexdigest()
     if conn.execute(
@@ -75,9 +91,9 @@ def import_photo(conn, storage, album_id, album_slug, data, credit=None, sort_or
         return None
 
     p = process(data)
-    base_key = f"albums/{album_slug}/{secrets.token_hex(6)}"
+    base_key = photo_base_key(album_slug, filename, sha) if filename else f"albums/{album_slug}/{secrets.token_hex(6)}"
     try:
-        upload_photo(storage, base_key, p)
+        upload_photo(storage, base_key, p, filename)
         return insert_photo(conn, album_id, record_of(p, base_key, sha, sort_order), credit)
     except Exception:
         conn.rollback()
@@ -97,7 +113,7 @@ def import_folder(conn, storage, folder, slug, title=None, credit=None, event_da
     for path in files:
         try:
             photo_id = import_photo(conn, storage, album_id, slug, path.read_bytes(), credit,
-                                    sort_order=order + 1)
+                                    sort_order=order + 1, filename=path.name)
         except UnsupportedImage as e:
             summary["failed"] += 1
             log(f"FAILED  {path.name}: {e}")

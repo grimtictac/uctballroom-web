@@ -22,7 +22,6 @@ import hashlib
 import json
 import math
 import os
-import secrets
 import shlex
 import signal
 import subprocess
@@ -295,14 +294,14 @@ def init_worker(cfg):
 def work(job):
     """Process and upload one photo. Returns {"record", "sent"} or {"error"}; never raises."""
     from app.images import process
-    from app.importer import record_of, upload_photo
+    from app.importer import photo_base_key, record_of, upload_photo
 
     path, slug, sha, sort_order = job
-    base_key = f"albums/{slug}/{secrets.token_hex(6)}"
+    base_key = photo_base_key(slug, Path(path).name, sha)
     try:
         p = process(Path(path).read_bytes())
         try:
-            sent = upload_photo(_storage, base_key, p)
+            sent = upload_photo(_storage, base_key, p, Path(path).name)
         except Exception:
             _storage.delete_prefix(base_key)  # no orphaned files from a half-uploaded photo
             raise
