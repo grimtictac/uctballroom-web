@@ -6,17 +6,21 @@ HOME_ALBUM = "home"  # slug of the album shown on the front page; it is not list
 PHOTO_ORDER = "p.sort_order IS NULL, p.sort_order, p.taken_at IS NULL, p.taken_at, p.id"
 
 
+COVER_PHOTO = f"""COALESCE(a.cover_photo_id,
+    (SELECT p.id FROM photos p WHERE p.album_id = a.id ORDER BY {PHOTO_ORDER} LIMIT 1))"""
+
+
 def list_albums(conn, exclude=HOME_ALBUM):
-    """All albums except `exclude`, alphabetically by title."""
+    """All albums except `exclude`: manually ordered ones first, then the rest alphabetically."""
     rows = conn.execute(
-        """SELECT a.id, a.slug, a.title, a.description, a.event_date,
+        f"""SELECT a.id, a.slug, a.title, a.description, a.event_date, a.cover_x, a.cover_y, a.cover_fit,
                   c.base_key AS cover_key, c.variants AS cover_variants,
                   c.placeholder AS cover_placeholder, c.width AS cover_w, c.height AS cover_h,
                   c.original_ext AS cover_ext,
                   (SELECT COUNT(*) FROM photos p WHERE p.album_id = a.id) AS photo_count
-           FROM albums a LEFT JOIN photos c ON c.id = a.cover_photo_id
+           FROM albums a LEFT JOIN photos c ON c.id = {COVER_PHOTO}
            WHERE a.slug != ?
-           ORDER BY a.title COLLATE NOCASE, a.id""",
+           ORDER BY a.sort_order IS NULL, a.sort_order, a.title COLLATE NOCASE, a.id""",
         (exclude or "",),
     ).fetchall()
     albums = []
@@ -30,6 +34,14 @@ def list_albums(conn, exclude=HOME_ALBUM):
         )
         albums.append(d)
     return albums
+
+
+def album_cover(conn, album):
+    """The photo shown on the album's card: the chosen cover, else the first photo."""
+    return conn.execute(
+        f"SELECT p.* FROM photos p WHERE p.id = (SELECT {COVER_PHOTO} FROM albums a WHERE a.id = ?)",
+        (album["id"],),
+    ).fetchone()
 
 
 def get_album(conn, slug):

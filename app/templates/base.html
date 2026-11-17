@@ -6,6 +6,7 @@
   <title>{% block title %}UCT Ballroom and Latin Dancing Society{% endblock %}</title>
   <meta name="description" content="{% block description %}UCT Ballroom: the university ballroom and Latin dance society.{% endblock %}">
   <meta name="theme-color" content="#0a1128">
+  {% if g.admin %}<meta name="csrf-token" content="{{ csrf_token() }}">{% endif %}
   <link rel="icon" href="{{ asset('img/favicon-32.png') }}" type="image/png" sizes="32x32">
   <link rel="icon" href="{{ asset('img/icon-192.png') }}" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="{{ asset('img/apple-touch-icon.png') }}">
@@ -15,7 +16,7 @@
   <link rel="stylesheet" href="{{ asset('css/site.css') }}">
   <script src="{{ asset('vendor/htmx.min.js') }}" defer></script>
 </head>
-<body>
+<body{% if g.admin %} data-admin{% endif %}>
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
     <div class="container header-inner">
@@ -34,6 +35,20 @@
       </div>
     </div>
   </footer>
+  {% if g.admin %}
+  <div class="admin-bar" id="admin-bar">
+    <strong>Admin</strong>
+    <button type="button" id="sel-toggle" hidden>Select</button>
+    <button type="button" id="sel-cover" hidden>Make cover</button>
+    <button type="button" id="sel-delete" hidden>Delete</button>
+    <button type="button" id="cover-edit" hidden>Adjust cover</button>
+    <form method="post" action="{{ url_for('admin.logout') }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button type="submit">Sign out</button>
+    </form>
+  </div>
+  <script type="module" src="{{ asset('js/admin.js') }}"></script>
+  {% endif %}
   {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -45,6 +45,37 @@ if (grid) {
       },
     });
 
+    if (document.body.hasAttribute("data-admin")) {
+      const csrf = document.querySelector('meta[name="csrf-token"]')?.content ?? "";
+      const send = (url, body) => fetch(url, {
+        method: "POST", headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf }, body: JSON.stringify(body),
+      });
+      const cover = document.getElementById("cover-data");
+      const word = (text) => `<span class="pswp__icn" style="font:600 .8rem/32px sans-serif;padding:0 .4rem">${text}</span>`;
+
+      if (cover) {
+        ui.registerElement({
+          name: "cover-button", order: 5, isButton: true, title: "Make cover", ariaLabel: "Make cover", html: word("Cover"),
+          onClick: async () => {
+            const id = Number(tileData(lightbox.pswp).photoId);
+            const r = await send(`/admin/albums/${cover.dataset.slug}/cover`, { photo_id: id });
+            if (r.ok) location.reload();
+          },
+        });
+      }
+      ui.registerElement({
+        name: "delete-button", order: 4, isButton: true, title: "Delete photo", ariaLabel: "Delete photo", html: word("Delete"),
+        onClick: async () => {
+          const tile = lightbox.pswp.currSlide?.data.element;
+          if (!tile || !confirm("Delete this photo? This can't be undone.")) return;
+          const r = await send("/admin/photos/delete", { ids: [Number(tile.dataset.photoId)] });
+          if (!r.ok) return alert("Could not delete. Try again.");
+          tile.remove();
+          lightbox.pswp.close();
+        },
+      });
+    }
+
     ui.registerElement({
       name: "download-button",
       order: 8,

@@ -11,6 +11,11 @@
 <h1 class="rise" style="--d: 1">{{ album.title }}</h1>
 <p class="muted rise" style="--d: 2">{% if album.event_date %}{{ album.event_date }} · {% endif %}{{ album.photo_count }} photo{{ '' if album.photo_count == 1 else 's' }}</p>
 {% if album.description %}<p class="prose">{{ album.description }}</p>{% endif %}
+{% if g.admin and cover %}
+<div id="cover-data" hidden data-slug="{{ album.slug }}" data-src="{{ photo_url(cover, best_width(cover, 800)) }}"
+     data-w="{{ cover.width }}" data-h="{{ cover.height }}" data-x="{{ album.cover_x }}" data-y="{{ album.cover_y }}"
+     data-fit="{{ album.cover_fit }}"></div>
+{% endif %}
 <div id="grid" class="grid" style="--row-h: {{ row_height }}px">
   {% include "gallery/_tiles.html" %}
 </div>

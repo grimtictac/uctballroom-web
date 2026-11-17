@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Admin · UCT Ballroom{% endblock %}
+{% block content %}
+<form class="admin-login" method="post" action="{{ url_for('admin.login') }}">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  <label for="password">Password</label>
+  <input id="password" name="password" type="password" autocomplete="current-password" required autofocus>
+  {% if error %}<p class="admin-error" role="alert">{{ error }}</p>{% endif %}
+  <button class="btn btn-primary" type="submit">Sign in</button>
+</form>
+{% endblock %}

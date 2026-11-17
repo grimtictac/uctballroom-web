@@ -137,14 +137,16 @@ p { margin: 0 0 1em; }
 .cta .lead { margin-inline: auto; }
 
 /* ---- Albums --------------------------------------------------------------- */
-.album-list { display: grid; gap: 2rem 1.5rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+.album-list { align-items: start; display: grid; gap: 2rem 1.5rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
 .album-card { text-decoration: none; display: block; }
 .album-card h3 { margin: .8rem 0 .1rem; transition: color .2s; }
 .album-card:hover h3 { color: var(--accent); }
 .album-card p { margin: 0; font-size: .875rem; }
 .cover { aspect-ratio: 3 / 2; overflow: hidden; border-radius: var(--radius); background: var(--surface) center / cover;
   box-shadow: var(--shadow); }
-.cover img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s var(--ease); }
+.cover img { width: 100%; height: 100%; object-fit: cover; object-position: var(--x, 50%) var(--y, 35%); display: block;
+  transition: transform .6s var(--ease); }
+.cover--full { aspect-ratio: var(--ar); }  /* show the whole photo instead of cropping it */
 .album-card:hover .cover img { transform: scale(1.05); }
 
 /* ---- Photo grid ----------------------------------------------------------- */
@@ -191,3 +193,33 @@ p { margin: 0 0 1em; }
   .nav { width: 100%; justify-content: space-between; gap: .5rem; font-size: .9rem; }
   .hero h1 { font-size: 6.2vw; }  /* keeps each line of the headline on one line */
 }
+
+
+/* ---- Admin (only rendered when signed in) -------------------------------------- */
+.admin-login { display: grid; gap: .8rem; max-width: 22rem; }
+.admin-login input { font: inherit; padding: .7rem .9rem; color: var(--text); background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius); }
+.admin-error { color: #ff9a9a; margin: 0; }
+.admin-bar { position: fixed; z-index: 60; left: 50%; bottom: 1rem; transform: translateX(-50%); display: flex; gap: .5rem;
+  align-items: center; flex-wrap: wrap; justify-content: center; max-width: calc(100vw - 1.5rem); padding: .5rem .75rem;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; box-shadow: var(--shadow); font-size: .85rem; }
+.admin-bar form { margin: 0; }
+.admin-bar button { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+.admin-bar button:hover:not(:disabled) { border-color: var(--accent); }
+.admin-bar button:disabled { opacity: .4; cursor: default; }
+.admin-bar #sel-delete { border-color: #c25b5b; }
+.grid.selecting .tile { cursor: copy; }
+.tile.selected { outline: 3px solid var(--accent); outline-offset: -3px; }
+.tile.selected::after { content: "✓"; position: absolute; top: .4rem; right: .4rem; width: 1.6rem; height: 1.6rem; display: grid;
+  place-items: center; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.album-card.dragging { opacity: .4; }
+.cover-dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-elev); color: var(--text); padding: 1.25rem;
+  width: min(92vw, 28rem); }
+.cover-dialog::backdrop { background: rgb(0 0 0 / .6); }
+.cover-dialog .cover { cursor: grab; touch-action: none; user-select: none; }
+.cover-dialog .cover:active { cursor: grabbing; }
+.cover-dialog .cover--full { cursor: default; }
+.cover-dialog img { transition: none; }
+.cover-dialog label { display: flex; gap: .5rem; align-items: center; margin: .9rem 0; }
+.cover-dialog .row { display: flex; gap: .6rem; justify-content: flex-end; }

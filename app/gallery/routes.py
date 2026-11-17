@@ -56,8 +56,8 @@ def page_of(album, offset):
 def album(slug):
     album = queries.get_album(get_db(), slug) or abort(404)
     photos, next_offset = page_of(album, 0)
-    return render_template("gallery/album.html", album=album, photos=photos,
-                           next_offset=next_offset)
+    return render_template("gallery/album.html", album=album, photos=photos, next_offset=next_offset,
+                           cover=queries.album_cover(get_db(), album))
 
 
 @bp.get("/albums/<slug>/photos")

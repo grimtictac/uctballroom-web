@@ -41,6 +41,13 @@ class Storage:
     def public_url(self, key):
         return f"{self.public_base_url}/{quote(self._key(key))}"
 
+    def delete_keys(self, keys):
+        """Delete these exact keys (in batches of 1000, the S3 limit)."""
+        keys = [self._key(k) for k in keys]
+        for i in range(0, len(keys), 1000):
+            self.client.delete_objects(
+                Bucket=self.bucket, Delete={"Objects": [{"Key": k} for k in keys[i:i + 1000]]})
+
     def delete_prefix(self, prefix):
         """Delete every object under prefix. Refuses an empty prefix."""
         if not prefix.strip("/"):

@@ -1,9 +1,11 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 
 import click
 from dotenv import load_dotenv
 from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import db
 from .importer import album_state_cmd, import_album_cmd, register_photos_cmd
@@ -25,6 +27,11 @@ def create_app(test_config=None):
         SPACES_REGION=os.environ.get("SPACES_REGION"),
         SPACES_PUBLIC_BASE_URL=os.environ.get("SPACES_PUBLIC_BASE_URL"),
         SPACES_PREFIX=os.environ.get("SPACES_PREFIX", ""),
+        # Hash of the single admin password (deploy/set-admin-password.sh). Unset = admin switched off.
+        ADMIN_PASSWORD_HASH=os.environ.get("ADMIN_PASSWORD_HASH"),
+        SESSION_COOKIE_SECURE=os.environ.get("APP_ENV") == "production",
+        SESSION_COOKIE_SAMESITE="Lax",
+        PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
     )
     if test_config:
         app.config.update(test_config)
@@ -32,6 +39,7 @@ def create_app(test_config=None):
         raise RuntimeError("SECRET_KEY must be set to a real secret when APP_ENV=production")
     Path(app.config["DATABASE"]).parent.mkdir(parents=True, exist_ok=True)
 
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)  # Caddy is the one proxy in front
     app.teardown_appcontext(db.close_db)
     for cmd in (import_album_cmd, album_state_cmd, register_photos_cmd):
         app.cli.add_command(cmd)
@@ -44,9 +52,11 @@ def create_app(test_config=None):
         conn.close()
         click.echo(f"Applied: {applied}" if applied else "Up to date.")
 
+    from .admin import bp as admin_bp
     from .gallery.routes import bp as gallery_bp
     from .pages import bp as pages_bp
 
+    app.register_blueprint(admin_bp)
     app.register_blueprint(pages_bp)
     app.register_blueprint(gallery_bp)
 

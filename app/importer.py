@@ -86,7 +86,9 @@ def import_photo(conn, storage, album_id, album_slug, data, credit=None, sort_or
     """Import one photo. Returns the new photo id, or None if it was already imported."""
     sha = hashlib.sha256(data).hexdigest()
     if conn.execute(
-        "SELECT 1 FROM photos WHERE album_id = ? AND source_sha256 = ?", (album_id, sha)
+        """SELECT 1 FROM photos WHERE album_id = ? AND source_sha256 = ?
+           UNION SELECT 1 FROM removed_photos WHERE album_id = ? AND source_sha256 = ?""",
+        (album_id, sha, album_id, sha),
     ).fetchone():
         return None
 
@@ -159,7 +161,9 @@ def album_state_cmd(slug):
         hashes, top = [], 0
         if row:
             hashes = [r[0] for r in conn.execute(
-                "SELECT source_sha256 FROM photos WHERE album_id = ? AND source_sha256 IS NOT NULL", (row["id"],))]
+                """SELECT source_sha256 FROM photos WHERE album_id = ? AND source_sha256 IS NOT NULL
+                   UNION SELECT source_sha256 FROM removed_photos WHERE album_id = ?""",
+                (row["id"], row["id"]))]
             top = conn.execute("SELECT COALESCE(MAX(sort_order), 0) FROM photos WHERE album_id = ?",
                                (row["id"],)).fetchone()[0]
     finally:
@@ -183,8 +187,10 @@ def register_photos_cmd(slug, title):
             if not line.strip():
                 continue
             rec = json.loads(line)
-            if conn.execute("SELECT 1 FROM photos WHERE album_id = ? AND source_sha256 = ?",
-                            (album_id, rec["sha256"])).fetchone():
+            if conn.execute(
+                    """SELECT 1 FROM photos WHERE album_id = ? AND source_sha256 = ?
+                       UNION SELECT 1 FROM removed_photos WHERE album_id = ? AND source_sha256 = ?""",
+                    (album_id, rec["sha256"], album_id, rec["sha256"])).fetchone():
                 skipped += 1
                 continue
             insert_photo(conn, album_id, rec)
