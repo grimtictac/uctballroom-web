@@ -121,6 +121,26 @@ if (grid) {
     history[replace ? "replaceState" : "pushState"]({ pswp: true }, "", url);
   };
 
+  // Mouse wheel / trackpad scroll steps through the photos. A wheel notch moves one photo; a trackpad
+  // fires dozens of tiny events per swipe, so a whole swipe (until a short pause) moves one photo.
+  lightbox.on("afterInit", () => {
+    const pswp = lightbox.pswp;
+    let lastEvent = 0, lastStep = 0, swipeUsed = false;
+    pswp.element.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const now = performance.now();
+      if (now - lastEvent > 150) swipeUsed = false; // a pause ends the previous swipe
+      lastEvent = now;
+      const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      if (Math.abs(delta) < 4) return;
+      const notch = e.deltaMode !== 0 || Math.abs(delta) >= 50;
+      if (notch ? now - lastStep < 200 : swipeUsed) return;
+      swipeUsed = true;
+      lastStep = now;
+      if (delta > 0) pswp.next(); else pswp.prev();
+    }, { passive: false });
+  });
+
   lightbox.on("afterInit", () => {
     const pswp = lightbox.pswp;
     pushed = !HASH_RE.test(location.hash); // opened from a click, not from a shared link
