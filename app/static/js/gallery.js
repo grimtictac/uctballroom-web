@@ -50,16 +50,34 @@ if (grid) {
       const send = (url, body) => fetch(url, {
         method: "POST", headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf }, body: JSON.stringify(body),
       });
-      const cover = document.getElementById("cover-data");
+      const hdata = document.getElementById("highlight-data") ? JSON.parse(document.getElementById("highlight-data").textContent) : null;
       const word = (text) => `<span class="pswp__icn" style="font:600 .8rem/32px sans-serif;padding:0 .4rem">${text}</span>`;
 
-      if (cover) {
+      if (hdata) {
+        // ★ adds or removes the current photo as one of the album's highlights.
         ui.registerElement({
-          name: "cover-button", order: 5, isButton: true, title: "Make cover", ariaLabel: "Make cover", html: word("Cover"),
-          onClick: async () => {
-            const id = Number(tileData(lightbox.pswp).photoId);
-            const r = await send(`/admin/albums/${cover.dataset.slug}/cover`, { photo_id: id });
-            if (r.ok) location.reload();
+          name: "star-button", order: 5, isButton: true, title: "Highlight", ariaLabel: "Highlight", html: word("★"),
+          onInit: (el, pswp) => {
+            const sync = () => {
+              const on = "highlight" in tileData(pswp);
+              el.classList.toggle("is-liked", on);
+              el.title = el.ariaLabel = on ? "Remove from highlights" : "Add to highlights";
+            };
+            pswp.on("change", sync);
+            sync();
+          },
+          onClick: async (e, el) => {
+            const tile = lightbox.pswp.currSlide?.data.element;
+            if (!tile) return;
+            const field = "highlight" in tile.dataset ? "remove" : "add";
+            const r = await send(`/admin/albums/${hdata.slug}/highlights`, { [field]: [Number(tile.dataset.photoId)] });
+            if (r.ok) {
+              tile.toggleAttribute("data-highlight", field === "add");
+              el.classList.toggle("is-liked", field === "add");
+              el.title = el.ariaLabel = field === "add" ? "Remove from highlights" : "Add to highlights";
+            } else {
+              alert((await r.json().catch(() => ({}))).error || "Could not update the highlights.");
+            }
           },
         });
       }

@@ -23,13 +23,13 @@ from flask import (
 from werkzeug.security import check_password_hash
 
 from .db import get_db
+from .gallery import queries
 from .storage import get_storage
 
 bp = Blueprint("admin", __name__)
 log = logging.getLogger(__name__)
 
 FAIL_LIMIT, FAIL_WINDOW = 6, 600  # wrong passwords allowed per address per 10 minutes (per worker)
-DEFAULT_X, DEFAULT_Y = 50, 35
 MAX_DELETE = 500
 
 
@@ -119,36 +119,103 @@ def _album(slug):
     return get_db().execute("SELECT id FROM albums WHERE slug = ?", (slug,)).fetchone() or abort(404)
 
 
-@bp.post("/admin/albums/<slug>/cover")
-def set_cover(slug):
-    album = _album(slug)
-    photo_id = payload().get("photo_id")
-    photo_id = int(photo_id) if isinstance(photo_id, str) and photo_id.isdigit() else photo_id
-    conn = get_db()
-    if not isinstance(photo_id, int) or not conn.execute(
-            "SELECT 1 FROM photos WHERE id = ? AND album_id = ?", (photo_id, album["id"])).fetchone():
+def _ints(value):
+    if not isinstance(value, list) or not all(isinstance(i, int) and not isinstance(i, bool) for i in value):
         abort(400)
-    # A new cover photo starts with the default framing; the old framing was for a different picture.
-    conn.execute("UPDATE albums SET cover_photo_id = ?, cover_x = ?, cover_y = ?, cover_fit = 'crop' WHERE id = ?",
-                 (photo_id, DEFAULT_X, DEFAULT_Y, album["id"]))
+    return value
+
+
+@bp.post("/admin/albums/<slug>/highlights")
+def edit_highlights(slug):
+    """Add photos to, or remove them from, an album's highlights (the card cycles through them)."""
+    album = _album(slug)
+    data = request.get_json(silent=True) or {}
+    add, remove = _ints(data.get("add", [])), _ints(data.get("remove", []))
+    conn = get_db()
+    if add:
+        marks = ",".join("?" * len(add))
+        found = {r[0] for r in conn.execute(
+            f"SELECT id FROM photos WHERE album_id = ? AND id IN ({marks})", [album["id"], *add])}
+        if found != set(add):
+            abort(400)
+    if remove:
+        conn.execute(f"DELETE FROM album_highlights WHERE album_id = ? AND photo_id IN ({','.join('?' * len(remove))})",
+                     [album["id"], *remove])
+    have = {r[0] for r in conn.execute("SELECT photo_id FROM album_highlights WHERE album_id = ?", (album["id"],))}
+    new = [pid for pid in dict.fromkeys(add) if pid not in have]  # keeps the order given, drops repeats
+    if len(have) + len(new) > queries.MAX_HIGHLIGHTS:
+        conn.rollback()
+        return jsonify(error=f"An album can have at most {queries.MAX_HIGHLIGHTS} highlights."), 400
+    position = conn.execute("SELECT COALESCE(MAX(position), 0) FROM album_highlights WHERE album_id = ?",
+                            (album["id"],)).fetchone()[0]
+    for pid in new:
+        position += 1
+        conn.execute("INSERT INTO album_highlights (album_id, photo_id, position) VALUES (?, ?, ?)",
+                     (album["id"], pid, position))
     conn.commit()
-    return jsonify(ok=True)
+    ids = [r[0] for r in conn.execute(
+        "SELECT photo_id FROM album_highlights WHERE album_id = ? ORDER BY position", (album["id"],))]
+    return jsonify(ok=True, highlights=ids)
+
+
+def _percent(value):
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        abort(400)
+    if not 0 <= number <= 100:
+        abort(400)
+    return number
 
 
 @bp.post("/admin/albums/<slug>/crop")
 def set_crop(slug):
+    """Save how each highlight is framed in the card, and whether the card shows photos whole."""
     album = _album(slug)
     data = payload()
-    try:
-        x, y = float(data.get("x")), float(data.get("y"))
-    except (TypeError, ValueError):
-        abort(400)
     fit = data.get("fit")
-    if not (0 <= x <= 100 and 0 <= y <= 100) or fit not in ("crop", "full"):
+    if fit not in ("crop", "full"):
         abort(400)
     conn = get_db()
-    conn.execute("UPDATE albums SET cover_x = ?, cover_y = ?, cover_fit = ? WHERE id = ?",
-                 (x, y, fit, album["id"]))
+    items = data.get("items")
+    if items is not None:
+        if not isinstance(items, list):
+            abort(400)
+        for item in items:
+            if not isinstance(item, dict) or not isinstance(item.get("photo_id"), int):
+                abort(400)
+            conn.execute("UPDATE album_highlights SET x = ?, y = ? WHERE album_id = ? AND photo_id = ?",
+                         (_percent(item.get("x")), _percent(item.get("y")), album["id"], item["photo_id"]))
+    else:  # no highlights chosen: the single fallback cover is framed on the album itself
+        conn.execute("UPDATE albums SET cover_x = ?, cover_y = ? WHERE id = ?",
+                     (_percent(data.get("x")), _percent(data.get("y")), album["id"]))
+    conn.execute("UPDATE albums SET cover_fit = ? WHERE id = ?", (fit, album["id"]))
+    conn.commit()
+    return jsonify(ok=True)
+
+
+@bp.get("/admin/panel")
+def panel():
+    conn = get_db()
+    albums = queries.list_albums(conn)
+    return render_template("admin/panel.html", settings=queries.get_settings(conn),
+                           preview=next((a for a in albums if len(a["slides"]) > 1), None))
+
+
+@bp.post("/admin/settings")
+def save_settings():
+    data = request.get_json(silent=True) or {}
+    mode = data.get("mode")
+    try:
+        seconds = float(data.get("seconds"))
+    except (TypeError, ValueError):
+        abort(400)
+    if mode not in queries.HIGHLIGHT_MODES or not 1.5 <= seconds <= 30:
+        abort(400)
+    conn = get_db()
+    for key, value in (("highlight_mode", mode), ("highlight_seconds", f"{seconds:g}")):
+        conn.execute("INSERT INTO settings (key, value) VALUES (?, ?) "
+                     "ON CONFLICT(key) DO UPDATE SET value = excluded.value", (key, value))
     conn.commit()
     return jsonify(ok=True)
 

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Panel · UCT Ballroom{% endblock %}
+{% block scripts %}<script type="module" src="{{ asset('js/highlights.js') }}"></script>{% endblock %}
+{% block content %}
+<form id="panel-form" class="panel-form" data-save="{{ url_for('admin.save_settings') }}">
+  <fieldset>
+    <legend>Album highlights</legend>
+    <div class="panel-modes">
+      {% for value, label in (('fade', 'Fade'), ('slide', 'Slide'), ('off', 'None')) %}
+      <label><input type="radio" name="mode" value="{{ value }}"{% if settings.mode == value %} checked{% endif %}> {{ label }}</label>
+      {% endfor %}
+    </div>
+    <label class="panel-speed">Time per photo
+      <input type="range" name="seconds" min="1.5" max="15" step="0.5" value="{{ '%g' % settings.seconds }}">
+      <output id="panel-seconds">{{ '%g' % settings.seconds }} s</output>
+    </label>
+  </fieldset>
+  <div class="panel-actions"><button class="btn btn-primary" type="submit">Save</button><span id="panel-status" role="status"></span></div>
+</form>
+{% if preview %}
+<div class="album-list panel-preview" data-mode="{{ settings.mode }}" data-seconds="{{ settings.seconds }}">
+  {% with a=preview %}{% include "gallery/_album_card.html" %}{% endwith %}
+</div>
+{% endif %}
+{% endblock %}

@@ -85,7 +85,8 @@ def test_login_needs_the_csrf_token(adm, client):
 
 def test_admin_endpoints_look_missing_when_signed_out(adm, client):
     for url, body in (("/admin/photos/delete", {"ids": [1]}), ("/admin/albums/order", {"slugs": []}),
-                      ("/admin/albums/x/cover", {"photo_id": 1}), ("/admin/albums/x/crop", {})):
+                      ("/admin/albums/x/highlights", {"add": [1]}), ("/admin/albums/x/crop", {}),
+                      ("/admin/settings", {"mode": "fade", "seconds": 4})):
         assert client.post(url, json=body).status_code == 404
 
 
@@ -143,28 +144,10 @@ def test_delete_validates_input_and_survives_storage_failure(adm, client_fake, c
     assert query(adm, "SELECT COUNT(*) FROM photos")[0][0] == 1  # the site is already consistent
 
 
-def test_set_cover_resets_framing_and_rejects_other_albums_photos(adm, client):
-    make_album(adm, "a", 2)
-    make_album(adm, "b", 1)
-    sign_in(client)
-    post(client, "/admin/albums/a/crop", {"x": 10, "y": 90, "fit": "full"})
-    assert post(client, "/admin/albums/a/cover", {"photo_id": 2}).status_code == 200
-    row = query(adm, "SELECT cover_photo_id, cover_x, cover_y, cover_fit FROM albums WHERE slug = 'a'")[0]
-    assert tuple(row) == (2, 50, 35, "crop")
-    assert post(client, "/admin/albums/a/cover", {"photo_id": 3}).status_code == 400  # photo 3 is in album b
-    assert post(client, "/admin/albums/nope/cover", {"photo_id": 1}).status_code == 404
 
 
-def test_crop_is_validated_and_rendered(adm, client):
-    make_album(adm, "a", 1)
-    sign_in(client)
-    for bad in ({"x": 120, "y": 5, "fit": "crop"}, {"x": 5, "y": 5, "fit": "zoom"}, {"x": "a", "y": 5, "fit": "crop"}):
-        assert post(client, "/admin/albums/a/crop", bad).status_code == 400
-    assert post(client, "/admin/albums/a/crop", {"x": 20.5, "y": 10, "fit": "crop"}).status_code == 200
-    html = client.get("/albums/").text
-    assert "--x: 20.5%; --y: 10.0%" in html and "cover--full" not in html
-    post(client, "/admin/albums/a/crop", {"x": 50, "y": 50, "fit": "full"})
-    assert "cover--full" in client.get("/albums/").text
+
+
 
 
 def test_reorder_albums(adm, client):
@@ -179,21 +162,126 @@ def test_reorder_albums(adm, client):
     assert post(client, "/admin/albums/order", {"slugs": "x"}).status_code == 400
 
 
-def test_cover_falls_back_to_the_first_photo_when_the_cover_is_deleted(adm, client):
+def test_a_card_with_no_highlights_shows_its_cover_then_the_first_photo(adm, client):
     make_album(adm, "a", 2)
     sign_in(client)
-    post(client, "/admin/albums/a/cover", {"photo_id": 2})
-    post(client, "/admin/photos/delete", {"ids": [2]})
+    assert 'class="slide is-active"' in client.get("/albums/").text.replace("slide is-active", 'slide is-active')
+    assert "albums/a/k0/" in client.get("/albums/").text
+    conn = db.connect(adm.config["DATABASE"])
+    conn.execute("UPDATE albums SET cover_photo_id = 2")
+    conn.commit()
+    conn.close()
+    post(client, "/admin/photos/delete", {"ids": [2]})  # the cover photo is deleted
     html = client.get("/albums/").text
     assert "albums/a/k0/" in html and "1 photo<" in html
 
 
-def test_album_page_offers_cover_tools_only_to_the_admin(adm, client):
+
+
+
+def test_highlights_add_remove_and_order(adm, client):
+    make_album(adm, "a", 4)
+    make_album(adm, "b", 2)
+    sign_in(client)
+    r = post(client, "/admin/albums/a/highlights", {"add": [3, 1, 3]})
+    assert r.get_json() == {"ok": True, "highlights": [3, 1]}  # given order kept, repeats dropped
+    assert post(client, "/admin/albums/a/highlights", {"add": [4]}).get_json()["highlights"] == [3, 1, 4]
+    assert post(client, "/admin/albums/a/highlights", {"remove": [1]}).get_json()["highlights"] == [3, 4]
+    assert post(client, "/admin/albums/a/highlights", {"add": [5]}).status_code == 400  # photo 5 is in album b
+    for bad in ({"add": ["1"]}, {"add": 1}, {"remove": [True]}):
+        assert post(client, "/admin/albums/a/highlights", bad).status_code == 400
+    assert post(client, "/admin/albums/nope/highlights", {"add": [1]}).status_code == 404
+
+
+def test_highlight_limit(adm, client):
+    make_album(adm, "a", 14)
+    sign_in(client)
+    assert post(client, "/admin/albums/a/highlights", {"add": list(range(1, 13))}).status_code == 200
+    r = post(client, "/admin/albums/a/highlights", {"add": [13]})
+    assert r.status_code == 400 and "at most 12" in r.get_json()["error"]
+    assert post(client, "/admin/albums/a/highlights", {"remove": [1], "add": [13]}).status_code == 200
+
+
+def test_highlights_drive_the_card_and_the_tile_badges(adm, client):
+    make_album(adm, "a", 3)
+    sign_in(client)
+    post(client, "/admin/albums/a/highlights", {"add": [3, 2]})
+    html = client.get("/albums/").text
+    assert html.count('class="slide') == 2  # only the highlights, not photo 1
+    assert html.index("albums/a/k2/") < html.index("albums/a/k1/") and "albums/a/k0/" not in html
+    assert html.count("is-active") == 1 and html.index("is-active") < html.index("albums/a/k1/")
+    album = client.get("/albums/a").text
+    assert album.count(" data-highlight") == 2
+    assert 'id="highlight-data"' in album and '"fallback": false' in album.replace('"fallback":false', '"fallback": false')
+
+
+def test_deleting_a_photo_removes_it_from_the_highlights(adm, client):
+    make_album(adm, "a", 3)
+    sign_in(client)
+    post(client, "/admin/albums/a/highlights", {"add": [1, 2]})
+    post(client, "/admin/photos/delete", {"ids": [1]})
+    assert [r[0] for r in query(adm, "SELECT photo_id FROM album_highlights")] == [2]
+
+
+def test_each_highlight_keeps_its_own_framing(adm, client):
     make_album(adm, "a", 2)
-    assert "cover-data" not in client.get("/albums/a").text
+    sign_in(client)
+    post(client, "/admin/albums/a/highlights", {"add": [1, 2]})
+    r = post(client, "/admin/albums/a/crop", {"fit": "crop", "items": [{"photo_id": 1, "x": 10, "y": 80}, {"photo_id": 2, "x": 60.5, "y": 5}]})
+    assert r.status_code == 200
+    html = client.get("/albums/").text
+    assert "object-position: 10.0% 80.0%" in html and "object-position: 60.5% 5.0%" in html
+
+
+def test_framing_the_fallback_cover_and_the_uncropped_option(adm, client):
+    make_album(adm, "a", 1)
+    sign_in(client)
+    assert post(client, "/admin/albums/a/crop", {"fit": "crop", "x": 20.5, "y": 10}).status_code == 200
+    html = client.get("/albums/").text
+    assert "object-position: 20.5% 10.0%" in html and "cover--full" not in html
+    post(client, "/admin/albums/a/crop", {"fit": "full", "x": 50, "y": 50})
+    assert "cover--full" in client.get("/albums/").text
+
+
+def test_crop_validation(adm, client):
+    make_album(adm, "a", 1)
+    sign_in(client)
+    bad = ({"fit": "zoom", "x": 1, "y": 1}, {"fit": "crop", "x": 120, "y": 5}, {"fit": "crop", "x": "a", "y": 5},
+           {"fit": "crop", "items": "no"}, {"fit": "crop", "items": [{"photo_id": "1", "x": 1, "y": 1}]},
+           {"fit": "crop", "items": [{"photo_id": 1, "x": 1, "y": 101}]})
+    for body in bad:
+        assert post(client, "/admin/albums/a/crop", body).status_code == 400
+
+
+def test_settings_default_save_and_validate(adm, client):
+    make_album(adm, "a", 1)
+    assert 'data-mode="fade" data-seconds="4.0"' in client.get("/albums/").text
+    sign_in(client)
+    assert post(client, "/admin/settings", {"mode": "slide", "seconds": 6.5}).status_code == 200
+    assert 'data-mode="slide" data-seconds="6.5"' in client.get("/albums/").text
+    for bad in ({"mode": "spin", "seconds": 4}, {"mode": "fade", "seconds": 0.5}, {"mode": "fade", "seconds": 99},
+                {"mode": "fade", "seconds": "fast"}, {"mode": "fade"}):
+        assert post(client, "/admin/settings", bad).status_code == 400
+    assert 'data-mode="slide"' in client.get("/albums/").text  # unchanged by the bad requests
+
+
+def test_panel_is_admin_only_and_shows_the_current_settings(adm, client):
+    make_album(adm, "a", 2)
+    assert client.get("/admin/panel").status_code == 404
+    sign_in(client)
+    post(client, "/admin/albums/a/highlights", {"add": [1, 2]})
+    post(client, "/admin/settings", {"mode": "slide", "seconds": 7})
+    html = client.get("/admin/panel").text
+    assert 'value="slide" checked' in html and 'value="7"' in html
+    assert 'class="album-list panel-preview"' in html and html.count('class="slide') == 2
+
+
+def test_album_page_offers_framing_data_only_to_the_admin(adm, client):
+    make_album(adm, "a", 2)
+    assert "highlight-data" not in client.get("/albums/a").text
     sign_in(client)
     html = client.get("/albums/a").text
-    assert 'id="cover-data"' in html and 'data-slug="a"' in html and 'data-fit="crop"' in html
+    assert 'id="highlight-data"' in html and '"slug": "a"' in html.replace('"slug":"a"', '"slug": "a"')
     assert 'draggable="true" data-slug="a"' in client.get("/albums/").text
 
 

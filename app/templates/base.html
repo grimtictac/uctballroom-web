@@ -39,9 +39,11 @@
   <div class="admin-bar" id="admin-bar">
     <strong>Admin</strong>
     <button type="button" id="sel-toggle" hidden>Select</button>
-    <button type="button" id="sel-cover" hidden>Make cover</button>
+    <button type="button" id="sel-star" hidden>★ Highlight</button>
+    <button type="button" id="sel-unstar" hidden>Remove ★</button>
     <button type="button" id="sel-delete" hidden>Delete</button>
-    <button type="button" id="cover-edit" hidden>Adjust cover</button>
+    <button type="button" id="cover-edit" hidden>Frame highlights</button>
+    <a class="admin-link" href="{{ url_for('admin.panel') }}">Panel</a>
     <form method="post" action="{{ url_for('admin.logout') }}">
       <input type="hidden" name="csrf" value="{{ csrf_token() }}">
       <button type="submit">Sign out</button>

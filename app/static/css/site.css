@@ -142,12 +142,18 @@ p { margin: 0 0 1em; }
 .album-card h3 { margin: .8rem 0 .1rem; transition: color .2s; }
 .album-card:hover h3 { color: var(--accent); }
 .album-card p { margin: 0; font-size: .875rem; }
-.cover { aspect-ratio: 3 / 2; overflow: hidden; border-radius: var(--radius); background: var(--surface) center / cover;
+.cover { position: relative; aspect-ratio: 3 / 2; overflow: hidden; border-radius: var(--radius); background: var(--surface) center / cover;
   box-shadow: var(--shadow); }
-.cover img { width: 100%; height: 100%; object-fit: cover; object-position: var(--x, 50%) var(--y, 35%); display: block;
-  transition: transform .6s var(--ease); }
 .cover--full { aspect-ratio: var(--ar); }  /* show the whole photo instead of cropping it */
-.album-card:hover .cover img { transform: scale(1.05); }
+/* The card's highlight photos are stacked; one is active. Fade mode cross-fades, slide mode slides them across. */
+.cover img.slide { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; opacity: 0;
+  transition: opacity var(--t, .8s) ease, transform .6s var(--ease); }
+.cover img.slide.is-active { opacity: 1; }
+.cover--full img.slide { object-fit: contain; }
+.album-list[data-mode="slide"] .cover img.slide { opacity: 1; transform: translateX(100%); transition: transform var(--t, .8s) ease; }
+.album-list[data-mode="slide"] .cover img.slide.is-active { transform: none; }
+.album-list[data-mode="slide"] .cover img.slide.is-left { transform: translateX(-100%); }
+.album-list:not([data-mode="slide"]) .album-card:hover .cover img.is-active { transform: scale(1.04); }
 
 /* ---- Photo grid ----------------------------------------------------------- */
 /* Justified rows: each tile's width follows its aspect ratio and rows stretch to fill. */
@@ -220,6 +226,23 @@ p { margin: 0 0 1em; }
 .cover-dialog .cover { cursor: grab; touch-action: none; user-select: none; }
 .cover-dialog .cover:active { cursor: grabbing; }
 .cover-dialog .cover--full { cursor: default; }
-.cover-dialog img { transition: none; }
+.cover-dialog img.slide { transition: none; }
 .cover-dialog label { display: flex; gap: .5rem; align-items: center; margin: .9rem 0; }
 .cover-dialog .row { display: flex; gap: .6rem; justify-content: flex-end; }
+.admin-link { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
+  padding: .3rem .8rem; text-decoration: none; }
+.admin-link:hover { border-color: var(--accent); color: var(--text); }
+body[data-admin] .tile[data-highlight]::before { content: "★"; position: absolute; z-index: 1; top: .4rem; left: .4rem;
+  width: 1.6rem; height: 1.6rem; display: grid; place-items: center; border-radius: 50%; background: rgb(0 0 0 / .6); color: #ffd666; }
+.cover-dialog .nav { display: flex; align-items: center; justify-content: center; gap: .8rem; margin-top: .8rem; }
+.cover-dialog .nav button { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 999px; padding: .2rem .8rem; cursor: pointer; }
+.panel-form { display: grid; gap: 1.2rem; max-width: 28rem; margin-bottom: 2rem; }
+.panel-form fieldset { border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem 1.2rem; display: grid; gap: 1rem; }
+.panel-modes { display: flex; gap: 1.4rem; }
+.panel-modes label, .panel-speed { display: flex; gap: .5rem; align-items: center; }
+.panel-speed input { flex: 1; }
+.panel-actions { display: flex; align-items: center; gap: 1rem; }
+.panel-preview { max-width: 24rem; pointer-events: none; }
+.cover-dialog .row button:not(.btn) { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 999px; padding: .5rem 1.1rem; cursor: pointer; }

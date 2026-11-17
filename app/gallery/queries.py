@@ -1,9 +1,22 @@
 """Hand-written SQL for the gallery."""
 
+from collections import defaultdict
+
 HOME_ALBUM = "home"  # slug of the album shown on the front page; it is not listed with the others
 
 # Manually pinned photos (sort_order set) come first, then by date taken.
 PHOTO_ORDER = "p.sort_order IS NULL, p.sort_order, p.taken_at IS NULL, p.taken_at, p.id"
+
+
+MAX_HIGHLIGHTS = 12
+DEFAULT_SETTINGS = {"highlight_mode": "fade", "highlight_seconds": "4"}
+HIGHLIGHT_MODES = ("fade", "slide", "off")
+
+
+def get_settings(conn):
+    """The admin's display settings, with defaults for anything not set yet."""
+    values = {**DEFAULT_SETTINGS, **{r["key"]: r["value"] for r in conn.execute("SELECT key, value FROM settings")}}
+    return {"mode": values["highlight_mode"], "seconds": float(values["highlight_seconds"])}
 
 
 COVER_PHOTO = f"""COALESCE(a.cover_photo_id,
@@ -14,7 +27,7 @@ def list_albums(conn, exclude=HOME_ALBUM):
     """All albums except `exclude`: manually ordered ones first, then the rest alphabetically."""
     rows = conn.execute(
         f"""SELECT a.id, a.slug, a.title, a.description, a.event_date, a.cover_x, a.cover_y, a.cover_fit,
-                  c.base_key AS cover_key, c.variants AS cover_variants,
+                  c.id AS cover_id, c.base_key AS cover_key, c.variants AS cover_variants,
                   c.placeholder AS cover_placeholder, c.width AS cover_w, c.height AS cover_h,
                   c.original_ext AS cover_ext,
                   (SELECT COUNT(*) FROM photos p WHERE p.album_id = a.id) AS photo_count
@@ -27,13 +40,38 @@ def list_albums(conn, exclude=HOME_ALBUM):
     for r in rows:
         d = dict(r)
         d["cover"] = (
-            {"base_key": r["cover_key"], "variants": r["cover_variants"],
+            {"id": r["cover_id"], "base_key": r["cover_key"], "variants": r["cover_variants"],
              "placeholder": r["cover_placeholder"], "width": r["cover_w"],
              "height": r["cover_h"], "original_ext": r["cover_ext"]}
             if r["cover_key"] else None
         )
         albums.append(d)
+    # Each card cycles through the album's highlight photos; with none chosen it shows the one cover.
+    slides = defaultdict(list)
+    for r in conn.execute(
+            """SELECT h.album_id, h.x, h.y, p.id, p.base_key, p.variants, p.placeholder, p.width, p.height,
+                      p.original_ext
+               FROM album_highlights h JOIN photos p ON p.id = h.photo_id ORDER BY h.album_id, h.position"""):
+        slides[r["album_id"]].append(dict(r))
+    for d in albums:
+        d["slides"] = slides.get(d["id"]) or (
+            [{**d["cover"], "x": d["cover_x"], "y": d["cover_y"]}] if d["cover"] else [])
     return albums
+
+
+def album_slides(conn, album):
+    """(slides, is_fallback): the album's highlight photos with their framing, or its single cover."""
+    rows = conn.execute(
+        """SELECT p.*, h.x, h.y FROM album_highlights h JOIN photos p ON p.id = h.photo_id
+           WHERE h.album_id = ? ORDER BY h.position""", (album["id"],)).fetchall()
+    if rows:
+        return [dict(r) for r in rows], False
+    cover = album_cover(conn, album)
+    return ([{**dict(cover), "x": album["cover_x"], "y": album["cover_y"]}] if cover else []), True
+
+
+def highlight_ids(conn, album_id):
+    return {r[0] for r in conn.execute("SELECT photo_id FROM album_highlights WHERE album_id = ?", (album_id,))}
 
 
 def album_cover(conn, album):

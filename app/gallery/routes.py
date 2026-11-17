@@ -1,4 +1,4 @@
-from flask import Blueprint, abort, current_app, render_template, request
+from flask import Blueprint, abort, current_app, g, render_template, request
 
 from ..db import get_db
 from ..storage import get_storage
@@ -41,9 +41,20 @@ def helpers():
     }
 
 
+def highlight_data(conn, album):
+    """What the admin's framing dialog needs (None for everyone else)."""
+    if not g.get("admin"):
+        return None
+    slides, fallback = queries.album_slides(conn, album)
+    return {"slug": album["slug"], "fit": album["cover_fit"], "fallback": fallback,
+            "slides": [{"id": s["id"], "src": photo_url(s, best_width(s, 800)), "w": s["width"], "h": s["height"],
+                        "x": s["x"], "y": s["y"]} for s in slides]}
+
+
 @bp.get("/albums/")
 def albums():
-    return render_template("gallery/albums.html", albums=queries.list_albums(get_db()))
+    conn = get_db()
+    return render_template("gallery/albums.html", albums=queries.list_albums(conn), hl=queries.get_settings(conn))
 
 
 def page_of(album, offset):
@@ -56,8 +67,10 @@ def page_of(album, offset):
 def album(slug):
     album = queries.get_album(get_db(), slug) or abort(404)
     photos, next_offset = page_of(album, 0)
+    conn = get_db()
     return render_template("gallery/album.html", album=album, photos=photos, next_offset=next_offset,
-                           cover=queries.album_cover(get_db(), album))
+                           highlights=queries.highlight_ids(conn, album["id"]),
+                           highlight_data=highlight_data(conn, album))
 
 
 @bp.get("/albums/<slug>/photos")
@@ -65,8 +78,8 @@ def album_photos(slug):
     """htmx fragment: the next page of tiles plus an out-of-band replacement of the sentinel."""
     album = queries.get_album(get_db(), slug) or abort(404)
     photos, next_offset = page_of(album, max(0, request.args.get("offset", 0, type=int)))
-    return render_template("gallery/_page.html", album=album, photos=photos,
-                           next_offset=next_offset)
+    return render_template("gallery/_page.html", album=album, photos=photos, next_offset=next_offset,
+                           highlights=queries.highlight_ids(get_db(), album["id"]))
 
 
 @bp.get("/photo/<int:photo_id>")

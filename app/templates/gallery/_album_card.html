@@ -1,8 +1,8 @@
 <a class="album-card" href="{{ url_for('gallery.album', slug=a.slug) }}"{% if g.admin %} draggable="true" data-slug="{{ a.slug }}"{% endif %}>
-  <div class="cover{% if a.cover_fit == 'full' and a.cover %} cover--full{% endif %}"
-       style="--x: {{ a.cover_x }}%; --y: {{ a.cover_y }}%;{% if a.cover %} --ar: {{ '%.4f' % (a.cover.width / a.cover.height) }}; background-image: url('{{ a.cover.placeholder }}'){% endif %}">
-    {% if a.cover %}<img src="{{ photo_url(a.cover, best_width(a.cover, 800)) }}" loading="lazy"
-         width="{{ a.cover.width }}" height="{{ a.cover.height }}" alt="" draggable="false">{% endif %}
+  <div class="cover{% if a.cover_fit == 'full' and a.slides %} cover--full{% endif %}"
+       {% if a.slides %}style="--ar: {{ '%.4f' % (a.slides[0].width / a.slides[0].height) }}; background-image: url('{{ a.slides[0].placeholder }}')"{% endif %}>
+    {% for s in a.slides %}<img class="slide{% if loop.first %} is-active{% endif %}" src="{{ photo_url(s, best_width(s, 800)) }}" loading="lazy"
+         width="{{ s.width }}" height="{{ s.height }}" alt="" draggable="false" style="object-position: {{ s.x }}% {{ s.y }}%">{% endfor %}
   </div>
   <h3>{{ a.title }}</h3>
   <p class="muted">{{ a.photo_count }} photo{{ '' if a.photo_count == 1 else 's' }}</p>
