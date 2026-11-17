@@ -6,8 +6,8 @@ from app.migrate import migrate
 
 def test_applies_and_is_idempotent(tmp_path):
     conn = db.connect(str(tmp_path / "m.db"))
-    assert migrate(conn, "migrations") == [1, 2, 3, 4]
-    assert conn.execute("PRAGMA user_version").fetchone()[0] == 4
+    assert migrate(conn, "migrations") == [1, 2, 3, 4, 5]
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == 5
     assert migrate(conn, "migrations") == []
 
 

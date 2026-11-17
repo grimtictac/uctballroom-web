@@ -14,6 +14,7 @@ const hdata = $("highlight-data") ? JSON.parse($("highlight-data").textContent) 
 
 if (grid) {
   const toggle = $("sel-toggle"), del = $("sel-delete"), star = $("sel-star"), unstar = $("sel-unstar");
+  const group = $("sel-group");
   toggle.hidden = false;
   let selecting = false;
   const chosen = () => [...grid.querySelectorAll(".tile.selected")];
@@ -27,6 +28,8 @@ if (grid) {
       b.hidden = !selecting || !hdata;
       b.disabled = n === 0;
     }
+    group.hidden = !selecting || !hdata;
+    group.disabled = n !== 1;
     toggle.textContent = selecting ? "Done" : "Select";
   };
 
@@ -65,6 +68,13 @@ if (grid) {
     if (r.ok) return location.reload();
     const message = (await r.json().catch(() => ({}))).error;
     alert(message || "Could not update the highlights.");
+  });
+  // A marker before the selected photo starts a new group (couple) that runs to the next marker.
+  group.addEventListener("click", async () => {
+    const [tile] = chosen();
+    const r = await post(`/admin/albums/${hdata.slug}/groups`, { start: Number(tile.dataset.photoId) });
+    if (!r.ok) return alert("Could not start a group there.");
+    location.reload();
   });
   if (hdata) {
     highlight(star, "add");
@@ -177,10 +187,10 @@ const panel = $("panel-form");
 if (panel) {
   const preview = document.querySelector(".panel-preview");
   const seconds = panel.elements.seconds, output = $("panel-seconds"), status = $("panel-status");
-  const current = () => ({ mode: panel.elements.mode.value, seconds: Number(seconds.value) });
+  const current = () => ({ mode: panel.elements.mode.value, seconds: Number(seconds.value), shuffle: panel.elements.shuffle.checked });
 
   const apply = () => {  // the preview card follows the controls straight away
-    const { mode, seconds: s } = current();
+    const { mode, seconds: s } = current();  // (shuffle only takes effect on the next page load)
     output.textContent = `${s} s`;
     status.textContent = "";
     if (preview) {
@@ -196,3 +206,49 @@ if (panel) {
     status.textContent = r.ok ? "Saved" : "Could not save";
   });
 }
+
+// ---- Name the dancers in a group -------------------------------------------------------------
+document.addEventListener("click", (e) => {
+  const head = e.target.closest(".group-edit")?.closest(".group-head");
+  if (!head) return;
+  const id = head.dataset.group;
+  const names = JSON.parse(head.dataset.people);
+  const dlg = document.createElement("dialog");
+  dlg.className = "cover-dialog";
+  dlg.innerHTML = `
+    <h3>Dancers in this group</h3>
+    <div class="people-rows"></div>
+    <button type="button" id="people-add">+ Add a dancer</button>
+    <div class="row" style="margin-top:1rem"><button type="button" id="group-remove" class="danger">Remove group</button>
+      <button type="button" id="people-cancel">Cancel</button>
+      <button type="button" id="people-save" class="btn btn-primary">Save</button></div>`;
+  document.body.append(dlg);
+  const rows = dlg.querySelector(".people-rows");
+  const addRow = (value = "") => {
+    const input = document.createElement("input");
+    input.setAttribute("list", "people-list");  // suggests people already used elsewhere
+    input.placeholder = "Name";
+    input.value = value;
+    rows.append(input);
+    return input;
+  };
+  (names.length ? names : ["", ""]).forEach(addRow);
+  const close = () => { dlg.close(); dlg.remove(); };
+  dlg.querySelector("#people-add").addEventListener("click", () => addRow().focus());
+  dlg.querySelector("#people-cancel").addEventListener("click", close);
+  dlg.addEventListener("cancel", () => dlg.remove());
+  dlg.querySelector("#people-save").addEventListener("click", async () => {
+    const list = [...rows.querySelectorAll("input")].map((i) => i.value.trim()).filter(Boolean);
+    const r = await post(`/admin/groups/${id}/people`, { names: list });
+    if (r.ok) location.reload();
+    else alert("Could not save the names.");
+  });
+  dlg.querySelector("#group-remove").addEventListener("click", async () => {
+    if (!confirm("Remove this group marker? The photos stay where they are.")) return;
+    const r = await post(`/admin/groups/${id}/delete`, {});
+    if (r.ok) location.reload();
+    else alert("Could not remove the group.");
+  });
+  dlg.showModal();
+  rows.querySelector("input")?.focus();
+});

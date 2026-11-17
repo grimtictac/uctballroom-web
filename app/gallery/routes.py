@@ -1,5 +1,6 @@
 from flask import Blueprint, abort, current_app, g, render_template, request
 
+from .. import people
 from ..db import get_db
 from ..storage import get_storage
 from . import queries
@@ -54,7 +55,8 @@ def highlight_data(conn, album):
 @bp.get("/albums/")
 def albums():
     conn = get_db()
-    return render_template("gallery/albums.html", albums=queries.list_albums(conn), hl=queries.get_settings(conn))
+    hl = queries.get_settings(conn)
+    return render_template("gallery/albums.html", albums=queries.shuffled(queries.list_albums(conn), hl), hl=hl)
 
 
 def page_of(album, offset):
@@ -63,23 +65,52 @@ def page_of(album, offset):
     return photos, (offset + size if has_more else None)
 
 
+def group_context(layout, offset):
+    """What the tile template needs to draw group headings for a page that starts at `offset`."""
+    ids, group_of, groups = layout
+    return {"gmap": group_of, "ginfo": groups, "prev_gid": group_of.get(ids[offset - 1]) if 0 < offset <= len(ids) else None}
+
+
+def album_index(conn, album, layout):
+    """The highlights as an index of the album, in album order, each captioned with its group's dancers."""
+    ids, group_of, groups = layout
+    slides, fallback = queries.album_slides(conn, album)
+    if fallback:
+        return []
+    slides.sort(key=lambda sl: ids.index(sl["id"]) if sl["id"] in ids else len(ids))
+    return [{"id": sl["id"], "src": photo_url(sl, best_width(sl, 400)), "x": sl["x"], "y": sl["y"],
+             "w": sl["width"], "h": sl["height"], "placeholder": sl["placeholder"],
+             "people": groups[group_of[sl["id"]]]["people"] if group_of.get(sl["id"]) else []}
+            for sl in slides]
+
+
 @bp.get("/albums/<slug>")
 def album(slug):
-    album = queries.get_album(get_db(), slug) or abort(404)
-    photos, next_offset = page_of(album, 0)
     conn = get_db()
+    album = queries.get_album(conn, slug) or abort(404)
+    layout = queries.album_layout(conn, album["id"])
+    ids = layout[0]
+    at = request.args.get("at", type=int)
+    offset = ids.index(at) if at in ids else 0  # ?at=<photo> opens the album starting at that photo
+    photos, next_offset = page_of(album, offset)
     return render_template("gallery/album.html", album=album, photos=photos, next_offset=next_offset,
                            highlights=queries.highlight_ids(conn, album["id"]),
-                           highlight_data=highlight_data(conn, album))
+                           highlight_data=highlight_data(conn, album), jumped=offset > 0,
+                           index=album_index(conn, album, layout),
+                           people_names=people.all_people(conn) if g.get("admin") else [],
+                           **group_context(layout, 0))
 
 
 @bp.get("/albums/<slug>/photos")
 def album_photos(slug):
     """htmx fragment: the next page of tiles plus an out-of-band replacement of the sentinel."""
-    album = queries.get_album(get_db(), slug) or abort(404)
-    photos, next_offset = page_of(album, max(0, request.args.get("offset", 0, type=int)))
+    conn = get_db()
+    album = queries.get_album(conn, slug) or abort(404)
+    offset = max(0, request.args.get("offset", 0, type=int))
+    layout = queries.album_layout(conn, album["id"])
+    photos, next_offset = page_of(album, offset)
     return render_template("gallery/_page.html", album=album, photos=photos, next_offset=next_offset,
-                           highlights=queries.highlight_ids(get_db(), album["id"]))
+                           highlights=queries.highlight_ids(conn, album["id"]), **group_context(layout, offset))
 
 
 @bp.get("/photo/<int:photo_id>")

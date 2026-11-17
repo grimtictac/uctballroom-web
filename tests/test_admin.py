@@ -193,18 +193,36 @@ def test_highlights_add_remove_and_order(adm, client):
     assert post(client, "/admin/albums/nope/highlights", {"add": [1]}).status_code == 404
 
 
-def test_highlight_limit(adm, client):
-    make_album(adm, "a", 14)
+def test_highlight_limit(adm, client, monkeypatch):
+    from app.gallery import queries
+    monkeypatch.setattr(queries, "MAX_HIGHLIGHTS", 3)
+    make_album(adm, "a", 6)
     sign_in(client)
-    assert post(client, "/admin/albums/a/highlights", {"add": list(range(1, 13))}).status_code == 200
-    r = post(client, "/admin/albums/a/highlights", {"add": [13]})
-    assert r.status_code == 400 and "at most 12" in r.get_json()["error"]
-    assert post(client, "/admin/albums/a/highlights", {"remove": [1], "add": [13]}).status_code == 200
+    assert post(client, "/admin/albums/a/highlights", {"add": [1, 2, 3]}).status_code == 200
+    r = post(client, "/admin/albums/a/highlights", {"add": [4]})
+    assert r.status_code == 400 and "at most 3" in r.get_json()["error"]
+    assert post(client, "/admin/albums/a/highlights", {"remove": [1], "add": [4]}).status_code == 200
+
+
+def test_a_big_album_can_have_a_highlight_per_couple(adm, client):
+    make_album(adm, "a", 60)
+    sign_in(client)
+    assert post(client, "/admin/albums/a/highlights", {"add": list(range(1, 61))}).status_code == 200
+
+
+def test_cards_load_only_the_first_slide_up_front(adm, client):
+    make_album(adm, "a", 5)
+    sign_in(client)
+    post(client, "/admin/settings", {"mode": "fade", "seconds": 4, "shuffle": False})
+    post(client, "/admin/albums/a/highlights", {"add": [1, 2, 3, 4]})
+    html = client.get("/albums/").text
+    assert html.count(' src="https://cdn.example/albums/a/') == 1 and html.count("data-src=") == 3
 
 
 def test_highlights_drive_the_card_and_the_tile_badges(adm, client):
     make_album(adm, "a", 3)
     sign_in(client)
+    post(client, "/admin/settings", {"mode": "fade", "seconds": 4, "shuffle": False})
     post(client, "/admin/albums/a/highlights", {"add": [3, 2]})
     html = client.get("/albums/").text
     assert html.count('class="slide') == 2  # only the highlights, not photo 1
@@ -258,11 +276,43 @@ def test_settings_default_save_and_validate(adm, client):
     assert 'data-mode="fade" data-seconds="4.0"' in client.get("/albums/").text
     sign_in(client)
     assert post(client, "/admin/settings", {"mode": "slide", "seconds": 6.5}).status_code == 200
+    assert post(client, "/admin/settings", {"mode": "slide", "seconds": 6.5, "shuffle": "yes"}).status_code == 400
     assert 'data-mode="slide" data-seconds="6.5"' in client.get("/albums/").text
     for bad in ({"mode": "spin", "seconds": 4}, {"mode": "fade", "seconds": 0.5}, {"mode": "fade", "seconds": 99},
                 {"mode": "fade", "seconds": "fast"}, {"mode": "fade"}):
         assert post(client, "/admin/settings", bad).status_code == 400
     assert 'data-mode="slide"' in client.get("/albums/").text  # unchanged by the bad requests
+
+
+def test_shuffle_is_on_by_default_and_can_be_switched_off(adm, client, monkeypatch):
+    import random
+    make_album(adm, "a", 4)
+    sign_in(client)
+    post(client, "/admin/albums/a/highlights", {"add": [1, 2, 3, 4]})
+    monkeypatch.setattr(random, "shuffle", lambda seq: seq.reverse())  # a visible, repeatable "shuffle"
+
+    def order():
+        html = client.get("/albums/").text
+        return [html.index(f"albums/a/k{i}/") for i in range(4)]
+
+    assert order() == sorted(order(), reverse=True)  # default: shuffled (here, reversed)
+    assert post(client, "/admin/settings", {"mode": "fade", "seconds": 4, "shuffle": False}).status_code == 200
+    assert order() == sorted(order())  # off: the order you added them in
+    post(client, "/admin/settings", {"mode": "fade", "seconds": 4})  # leaving shuffle out changes nothing
+    assert order() == sorted(order())
+    assert post(client, "/admin/settings", {"mode": "fade", "seconds": 4, "shuffle": True}).status_code == 200
+    assert order() == sorted(order(), reverse=True)
+
+
+def test_shuffle_changes_which_photo_is_first_across_visits(adm, client):
+    make_album(adm, "a", 6)
+    sign_in(client)
+    post(client, "/admin/albums/a/highlights", {"add": [1, 2, 3, 4, 5, 6]})
+    firsts = set()
+    for _ in range(40):
+        html = client.get("/albums/").text
+        firsts.add(re.search(r'class="slide is-active" src="[^"]*albums/a/(k\d)/', html).group(1))
+    assert len(firsts) >= 3  # not always the same photo up front
 
 
 def test_panel_is_admin_only_and_shows_the_current_settings(adm, client):

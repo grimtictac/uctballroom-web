@@ -22,6 +22,7 @@ from flask import (
 )
 from werkzeug.security import check_password_hash
 
+from . import people
 from .db import get_db
 from .gallery import queries
 from .storage import get_storage
@@ -197,8 +198,9 @@ def set_crop(slug):
 @bp.get("/admin/panel")
 def panel():
     conn = get_db()
-    albums = queries.list_albums(conn)
-    return render_template("admin/panel.html", settings=queries.get_settings(conn),
+    settings = queries.get_settings(conn)
+    albums = queries.shuffled(queries.list_albums(conn), settings)
+    return render_template("admin/panel.html", settings=settings,
                            preview=next((a for a in albums if len(a["slides"]) > 1), None))
 
 
@@ -212,12 +214,86 @@ def save_settings():
         abort(400)
     if mode not in queries.HIGHLIGHT_MODES or not 1.5 <= seconds <= 30:
         abort(400)
+    values = [("highlight_mode", mode), ("highlight_seconds", f"{seconds:g}")]
+    if "shuffle" in data:  # optional, so older callers leave it as it is
+        if not isinstance(data["shuffle"], bool):
+            abort(400)
+        values.append(("highlight_shuffle", "1" if data["shuffle"] else "0"))
     conn = get_db()
-    for key, value in (("highlight_mode", mode), ("highlight_seconds", f"{seconds:g}")):
+    for key, value in values:
         conn.execute("INSERT INTO settings (key, value) VALUES (?, ?) "
                      "ON CONFLICT(key) DO UPDATE SET value = excluded.value", (key, value))
     conn.commit()
     return jsonify(ok=True)
+
+
+@bp.post("/admin/albums/<slug>/groups")
+def add_group(slug):
+    """Start a new group at a photo (the marker sits just before it)."""
+    album = _album(slug)
+    start = (request.get_json(silent=True) or {}).get("start")
+    conn = get_db()
+    if not isinstance(start, int) or isinstance(start, bool) or not conn.execute(
+            "SELECT 1 FROM photos WHERE id = ? AND album_id = ?", (start, album["id"])).fetchone():
+        abort(400)
+    conn.execute("INSERT OR IGNORE INTO photo_groups (album_id, start_photo_id) VALUES (?, ?)", (album["id"], start))
+    conn.commit()
+    row = conn.execute("SELECT id FROM photo_groups WHERE album_id = ? AND start_photo_id = ?",
+                       (album["id"], start)).fetchone()
+    return jsonify(ok=True, group=row["id"])
+
+
+def _group(group_id):
+    return get_db().execute("SELECT id FROM photo_groups WHERE id = ?", (group_id,)).fetchone() or abort(404)
+
+
+@bp.post("/admin/groups/<int:group_id>/people")
+def set_people(group_id):
+    """Name the dancers on a group (replaces the list). Names are shared 'person' tags."""
+    _group(group_id)
+    names = (request.get_json(silent=True) or {}).get("names")
+    if not isinstance(names, list) or not all(isinstance(n, str) for n in names):
+        abort(400)
+    names = [n for n in (people.clean_name(n) for n in names) if n]
+    if len(names) > people.MAX_PEOPLE or any(len(n) > people.MAX_NAME for n in names):
+        abort(400)
+    conn = get_db()
+    people.set_group_people(conn, group_id, names)
+    conn.commit()
+    return jsonify(ok=True)
+
+
+@bp.post("/admin/groups/<int:group_id>/delete")
+def delete_group(group_id):
+    """Remove a group marker. The photos stay; the people stay available as tags."""
+    _group(group_id)
+    conn = get_db()
+    conn.execute("DELETE FROM photo_groups WHERE id = ?", (group_id,))
+    conn.commit()
+    return jsonify(ok=True)
+
+
+def _rehome_group_starts(conn, rows):
+    """Deleting a group's first photo must not delete the group: move its marker to the next photo that
+    stays. If nothing is left in the group (or the next photo already starts a group), drop the group."""
+    doomed = {r["id"] for r in rows}
+    for album_id in {r["album_id"] for r in rows}:
+        starts = conn.execute(
+            "SELECT id, start_photo_id FROM photo_groups WHERE album_id = ?", (album_id,)).fetchall()
+        affected = [grp for grp in starts if grp["start_photo_id"] in doomed]
+        if not affected:
+            continue
+        order = [r[0] for r in conn.execute(
+            f"SELECT p.id FROM photos p WHERE p.album_id = ? ORDER BY {queries.PHOTO_ORDER}", (album_id,))]
+        taken = {grp["start_photo_id"] for grp in starts}
+        for grp in affected:
+            later = order[order.index(grp["start_photo_id"]) + 1:]
+            nxt = next((pid for pid in later if pid not in doomed), None)
+            if nxt is not None and nxt not in taken:
+                conn.execute("UPDATE photo_groups SET start_photo_id = ? WHERE id = ?", (nxt, grp["id"]))
+                taken.add(nxt)
+            else:
+                conn.execute("DELETE FROM photo_groups WHERE id = ?", (grp["id"],))
 
 
 @bp.post("/admin/photos/delete")
@@ -230,6 +306,7 @@ def delete_photos():
     rows = conn.execute(
         f"SELECT id, album_id, base_key, variants, original_ext, source_sha256 FROM photos WHERE id IN ({marks})",
         ids).fetchall()
+    _rehome_group_starts(conn, rows)
     keys = []
     for r in rows:
         if r["source_sha256"]:  # remember it, so re-running an import doesn't bring the photo back

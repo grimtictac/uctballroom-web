@@ -1,4 +1,17 @@
+{% set gmap = gmap or {} %}{% set ginfo = ginfo or {} %}{% set ns = namespace(prev=prev_gid|default(none)) %}
 {% for p in photos %}
+{% set gid = gmap.get(p.id) %}
+{% if gid != ns.prev %}
+{% if not loop.first or ns.prev is not none %}<i class="grid-fill"></i><i class="grid-break"></i>{% endif %}
+{% set info = ginfo.get(gid) %}
+{% if info and (info.people or g.admin) %}
+<div class="group-head" data-group="{{ gid }}" data-start="{{ info.start }}" data-people='{{ info.people | tojson }}'>
+  <h2 class="group-names{% if not info.people %} muted{% endif %}">{{ info.people | join(' & ') if info.people else 'Unnamed group' }}</h2>
+  {% if g.admin %}<button type="button" class="group-edit">Edit</button>{% endif %}
+</div>
+{% endif %}
+{% set ns.prev = gid %}
+{% endif %}
 {% set ar = p.width / p.height %}
 {% set big = best_width(p, 1600) %}
 <a class="tile" href="{{ url_for('gallery.photo', photo_id=p.id) }}"

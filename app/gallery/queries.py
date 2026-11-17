@@ -1,5 +1,6 @@
 """Hand-written SQL for the gallery."""
 
+import random
 from collections import defaultdict
 
 HOME_ALBUM = "home"  # slug of the album shown on the front page; it is not listed with the others
@@ -8,15 +9,25 @@ HOME_ALBUM = "home"  # slug of the album shown on the front page; it is not list
 PHOTO_ORDER = "p.sort_order IS NULL, p.sort_order, p.taken_at IS NULL, p.taken_at, p.id"
 
 
-MAX_HIGHLIGHTS = 12
-DEFAULT_SETTINGS = {"highlight_mode": "fade", "highlight_seconds": "4"}
+MAX_HIGHLIGHTS = 200  # a safety limit; slides load on demand, so a big album can have one per couple
+DEFAULT_SETTINGS = {"highlight_mode": "fade", "highlight_seconds": "4", "highlight_shuffle": "1"}
 HIGHLIGHT_MODES = ("fade", "slide", "off")
 
 
 def get_settings(conn):
     """The admin's display settings, with defaults for anything not set yet."""
     values = {**DEFAULT_SETTINGS, **{r["key"]: r["value"] for r in conn.execute("SELECT key, value FROM settings")}}
-    return {"mode": values["highlight_mode"], "seconds": float(values["highlight_seconds"])}
+    return {"mode": values["highlight_mode"], "seconds": float(values["highlight_seconds"]),
+            "shuffle": values["highlight_shuffle"] == "1"}
+
+
+def shuffled(albums, settings):
+    """With shuffle on, each visit sees each card's highlights in a fresh random order, so every
+    highlight gets a turn at being the first one shown (and none languishes at the end)."""
+    if settings["shuffle"]:
+        for a in albums:
+            random.shuffle(a["slides"])
+    return albums
 
 
 COVER_PHOTO = f"""COALESCE(a.cover_photo_id,
@@ -68,6 +79,29 @@ def album_slides(conn, album):
         return [dict(r) for r in rows], False
     cover = album_cover(conn, album)
     return ([{**dict(cover), "x": album["cover_x"], "y": album["cover_y"]}] if cover else []), True
+
+
+def album_layout(conn, album_id):
+    """(ordered photo ids, {photo id: group id or None}, {group id: {id, start, people}}) for one album.
+
+    A group starts at its marker photo and runs to the next marker; photos before the first marker are
+    in no group. Computed in Python because an album has hundreds of photos at most."""
+    ids = [r[0] for r in conn.execute(
+        f"SELECT p.id FROM photos p WHERE p.album_id = ? ORDER BY {PHOTO_ORDER}", (album_id,))]
+    groups = {}
+    for r in conn.execute(
+            """SELECT g.id, g.start_photo_id, t.name FROM photo_groups g
+               LEFT JOIN group_people gp ON gp.group_id = g.id LEFT JOIN tags t ON t.id = gp.tag_id
+               WHERE g.album_id = ? ORDER BY g.id, gp.position""", (album_id,)):
+        group = groups.setdefault(r["id"], {"id": r["id"], "start": r["start_photo_id"], "people": []})
+        if r["name"]:
+            group["people"].append(r["name"])
+    by_start = {g["start"]: gid for gid, g in groups.items()}
+    group_of, current = {}, None
+    for pid in ids:
+        current = by_start.get(pid, current)
+        group_of[pid] = current
+    return ids, group_of, groups
 
 
 def highlight_ids(conn, album_id):

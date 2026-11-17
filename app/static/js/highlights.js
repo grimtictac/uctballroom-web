@@ -22,12 +22,18 @@ if (list && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
     if (slides.length < 2) continue;
     io.observe(cover);
     let current = 0;
+    // Later slides have no src until needed: an album can have dozens of highlights, and downloading them
+    // all up front would be heavy. Each slide is loaded one step before it is shown.
+    const load = (img) => { if (!img.getAttribute("src")) img.src = img.dataset.src; };
+    load(slides[1]); // so the first change doesn't wait on a download
     let timer = null;
 
     const advance = (mode) => {
       const from = slides[current];
       current = (current + 1) % slides.length;
       const to = slides[current];
+      load(to);
+      load(slides[(current + 1) % slides.length]);
       if (mode === "slide") {
         if (to.classList.contains("is-left")) reset(to);
         from.classList.remove("is-active");

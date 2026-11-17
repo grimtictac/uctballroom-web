@@ -12,6 +12,22 @@
 <p class="muted rise" style="--d: 2">{% if album.event_date %}{{ album.event_date }} · {% endif %}{{ album.photo_count }} photo{{ '' if album.photo_count == 1 else 's' }}</p>
 {% if album.description %}<p class="prose">{{ album.description }}</p>{% endif %}
 {% if highlight_data %}<script type="application/json" id="highlight-data">{{ highlight_data | tojson }}</script>{% endif %}
+{% if index %}
+<nav class="album-index" aria-label="Find a photo">
+  {% for i in index %}
+  <a class="index-card" href="{{ url_for('gallery.album', slug=album.slug, at=i.id) }}#grid">
+    <span class="index-thumb" style="background-image: url('{{ i.placeholder }}')"><img src="{{ i.src }}" loading="lazy" width="{{ i.w }}" height="{{ i.h }}" alt=""
+      style="object-position: {{ i.x }}% {{ i.y }}%"></span>
+    {% if i.people %}<span class="index-names">{{ i.people | join(' & ') }}</span>{% endif %}
+  </a>
+  {% endfor %}
+</nav>
+{% endif %}
+{% if jumped %}
+<p class="start-bar"><a class="btn btn-primary" href="{{ url_for('gallery.album', slug=album.slug) }}">&larr; Back to the start</a></p>
+<a class="back-fab btn btn-primary" href="{{ url_for('gallery.album', slug=album.slug) }}">&larr; Back to start</a>
+{% endif %}
+{% if g.admin %}<datalist id="people-list">{% for name in people_names %}<option value="{{ name }}">{% endfor %}</datalist>{% endif %}
 <div id="grid" class="grid" style="--row-h: {{ row_height }}px">
   {% include "gallery/_tiles.html" %}
 </div>
