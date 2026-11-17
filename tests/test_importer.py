@@ -81,3 +81,24 @@ def test_photos_follow_filename_order_not_date_taken(app, tmp_path):
     import_folder(conn, storage, later, "home")
     photos, _ = queries.album_photos(conn, album["id"], 10, 0)
     assert [p["width"] for p in photos] == [1000, 1001, 1002]
+
+
+def test_register_photos_and_album_state_roundtrip(app):
+    import json
+
+    from app.importer import album_state_cmd
+    rec = {"base_key": "albums/x/aa", "width": 10, "height": 8, "taken_at": None, "placeholder": "p",
+           "original_ext": "jpg", "variants": "400", "sha256": "h1", "sort_order": 3}
+    runner = app.test_cli_runner()
+    stdin = json.dumps(rec) + "\n" + json.dumps({**rec, "base_key": "albums/x/bb", "sha256": "h2",
+                                                  "sort_order": 4}) + "\n"
+    out = runner.invoke(args=["register-photos", "--album", "x", "--title", "X"], input=stdin)
+    assert out.output.strip() == "registered 2, skipped 0"
+    again = runner.invoke(args=["register-photos", "--album", "x"], input=stdin)  # idempotent
+    assert again.output.strip() == "registered 0, skipped 2"
+    state = json.loads(runner.invoke(args=[album_state_cmd.name, "x"]).output)
+    assert state["exists"] and state["max_order"] == 4 and sorted(state["hashes"]) == ["h1", "h2"]
+    assert json.loads(runner.invoke(args=["album-state", "nope"]).output)["exists"] is False
+    conn = db.connect(app.config["DATABASE"])
+    album = conn.execute("SELECT * FROM albums WHERE slug = 'x'").fetchone()
+    assert album["title"] == "X" and album["cover_photo_id"] is not None

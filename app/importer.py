@@ -1,7 +1,9 @@
 """Import a folder of photos into an album: process, upload to the Space, insert rows."""
 import hashlib
+import json
 import re
 import secrets
+import sys
 from pathlib import Path
 
 import click
@@ -30,6 +32,40 @@ def get_or_create_album(conn, slug, title=None, event_date=None):
     return cur.lastrowid
 
 
+def record_of(p, base_key, sha, sort_order):
+    """The database fields of a processed photo (also the wire format for register-photos)."""
+    return {"base_key": base_key, "width": p.width, "height": p.height, "taken_at": p.taken_at,
+            "placeholder": p.placeholder, "original_ext": p.original_ext,
+            "variants": ",".join(map(str, p.variants)), "sha256": sha, "sort_order": sort_order}
+
+
+def upload_photo(storage, base_key, p):
+    """Upload every variant plus the original. Returns the bytes sent."""
+    sent = 0
+    for width, blob in p.variants.items():
+        storage.upload(f"{base_key}/{width}.webp", blob, "image/webp")
+        sent += len(blob)
+    storage.upload(f"{base_key}/original.{p.original_ext}", p.original, CONTENT_TYPE[p.original_ext])
+    return sent + len(p.original)
+
+
+def insert_photo(conn, album_id, rec, credit=None):
+    """Insert one photo row (and make it the album cover if the album has none). Commits."""
+    cur = conn.execute(
+        """INSERT INTO photos (album_id, base_key, width, height, credit, taken_at,
+                               placeholder, original_ext, variants, source_sha256, sort_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (album_id, rec["base_key"], rec["width"], rec["height"], credit, rec["taken_at"],
+         rec["placeholder"], rec["original_ext"], rec["variants"], rec["sha256"], rec["sort_order"]),
+    )
+    conn.execute(
+        "UPDATE albums SET cover_photo_id = ? WHERE id = ? AND cover_photo_id IS NULL",
+        (cur.lastrowid, album_id),
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
 def import_photo(conn, storage, album_id, album_slug, data, credit=None, sort_order=None):
     """Import one photo. Returns the new photo id, or None if it was already imported."""
     sha = hashlib.sha256(data).hexdigest()
@@ -41,28 +77,12 @@ def import_photo(conn, storage, album_id, album_slug, data, credit=None, sort_or
     p = process(data)
     base_key = f"albums/{album_slug}/{secrets.token_hex(6)}"
     try:
-        for width, blob in p.variants.items():
-            storage.upload(f"{base_key}/{width}.webp", blob, "image/webp")
-        storage.upload(
-            f"{base_key}/original.{p.original_ext}", p.original, CONTENT_TYPE[p.original_ext]
-        )
-        cur = conn.execute(
-            """INSERT INTO photos (album_id, base_key, width, height, credit, taken_at,
-                                   placeholder, original_ext, variants, source_sha256, sort_order)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (album_id, base_key, p.width, p.height, credit, p.taken_at, p.placeholder,
-             p.original_ext, ",".join(map(str, p.variants)), sha, sort_order),
-        )
-        conn.execute(
-            "UPDATE albums SET cover_photo_id = ? WHERE id = ? AND cover_photo_id IS NULL",
-            (cur.lastrowid, album_id),
-        )
-        conn.commit()
+        upload_photo(storage, base_key, p)
+        return insert_photo(conn, album_id, record_of(p, base_key, sha, sort_order), credit)
     except Exception:
         conn.rollback()
         storage.delete_prefix(base_key)  # don't leave orphaned files behind
         raise
-    return cur.lastrowid
 
 
 def import_folder(conn, storage, folder, slug, title=None, credit=None, event_date=None,
@@ -109,3 +129,50 @@ def import_album_cmd(folder, slug, title, credit, event_date):
         conn.close()
     click.echo(f"Done: {summary['imported']} imported, {summary['skipped']} skipped, "
                f"{summary['failed']} failed.")
+
+
+@click.command("album-state")
+@click.argument("slug")
+@with_appcontext
+def album_state_cmd(slug):
+    """Print JSON describing an album and the storage settings, for the local batch importer."""
+    cfg = current_app.config
+    conn = dbmod.connect(cfg["DATABASE"])
+    try:
+        row = conn.execute("SELECT id FROM albums WHERE slug = ?", (slug,)).fetchone()
+        hashes, top = [], 0
+        if row:
+            hashes = [r[0] for r in conn.execute(
+                "SELECT source_sha256 FROM photos WHERE album_id = ? AND source_sha256 IS NOT NULL", (row["id"],))]
+            top = conn.execute("SELECT COALESCE(MAX(sort_order), 0) FROM photos WHERE album_id = ?",
+                               (row["id"],)).fetchone()[0]
+    finally:
+        conn.close()
+    click.echo(json.dumps({"exists": bool(row), "max_order": top, "hashes": hashes,
+                           "bucket": cfg.get("SPACES_BUCKET"), "region": cfg.get("SPACES_REGION"),
+                           "prefix": cfg.get("SPACES_PREFIX", "")}))
+
+
+@click.command("register-photos")
+@click.option("--album", "slug", required=True)
+@click.option("--title")
+@with_appcontext
+def register_photos_cmd(slug, title):
+    """Insert photo rows for files already uploaded to the Space. Reads JSON lines from stdin."""
+    conn = dbmod.connect(current_app.config["DATABASE"])
+    registered = skipped = 0
+    try:
+        album_id = get_or_create_album(conn, slug, title)
+        for line in sys.stdin:
+            if not line.strip():
+                continue
+            rec = json.loads(line)
+            if conn.execute("SELECT 1 FROM photos WHERE album_id = ? AND source_sha256 = ?",
+                            (album_id, rec["sha256"])).fetchone():
+                skipped += 1
+                continue
+            insert_photo(conn, album_id, rec)
+            registered += 1
+    finally:
+        conn.close()
+    click.echo(f"registered {registered}, skipped {skipped}")

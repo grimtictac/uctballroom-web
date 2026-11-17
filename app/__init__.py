@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from flask import Flask
 
 from . import db
-from .importer import import_album_cmd
+from .importer import album_state_cmd, import_album_cmd, register_photos_cmd
 from .migrate import migrate
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -33,7 +33,8 @@ def create_app(test_config=None):
     Path(app.config["DATABASE"]).parent.mkdir(parents=True, exist_ok=True)
 
     app.teardown_appcontext(db.close_db)
-    app.cli.add_command(import_album_cmd)
+    for cmd in (import_album_cmd, album_state_cmd, register_photos_cmd):
+        app.cli.add_command(cmd)
 
     @app.cli.command("migrate")
     def migrate_cmd():
