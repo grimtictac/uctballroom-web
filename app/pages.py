@@ -11,7 +11,6 @@ from .gallery.routes import page_of
 
 bp = Blueprint("pages", __name__)
 
-HOME_ALBUM = "home"  # slug of the album whose photos fill the front page
 
 
 @cache
@@ -36,7 +35,7 @@ def site_context():
 
 @bp.get("/")
 def home():
-    album = queries.get_album(get_db(), HOME_ALBUM)
+    album = queries.get_album(get_db(), queries.HOME_ALBUM)
     photos, next_offset = page_of(album, 0) if album else ([], None)
     return render_template("home.html", album=album, photos=photos, next_offset=next_offset)
 

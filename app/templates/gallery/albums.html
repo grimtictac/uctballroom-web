@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Photos · UCT Ballroom{% endblock %}
+{% block content %}
+<div class="album-list">
+  {% for a in albums %}{% include "gallery/_album_card.html" %}{% endfor %}
+</div>
+{% endblock %}

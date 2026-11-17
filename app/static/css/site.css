@@ -127,6 +127,7 @@ p { margin: 0 0 1em; }
 .hero-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .hero-inner { margin-top: 1rem; }
 .hero h1 { max-width: none; margin: 0; text-align: center; }
+.hero-cta { text-align: center; margin: 1.5rem 0 0; }
 .actions { display: flex; gap: .8rem; flex-wrap: wrap; }
 .section { padding-block: clamp(2rem, 5vw, 4rem); }
 .section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; margin-bottom: 1.5rem; }
@@ -134,6 +135,17 @@ p { margin: 0 0 1em; }
 .cta { text-align: center; border: 1px solid var(--line); border-radius: 16px; background: var(--bg-elev);
   padding: clamp(2rem, 6vw, 4rem) var(--gutter); margin-top: 2rem; }
 .cta .lead { margin-inline: auto; }
+
+/* ---- Albums --------------------------------------------------------------- */
+.album-list { display: grid; gap: 2rem 1.5rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+.album-card { text-decoration: none; display: block; }
+.album-card h3 { margin: .8rem 0 .1rem; transition: color .2s; }
+.album-card:hover h3 { color: var(--accent); }
+.album-card p { margin: 0; font-size: .875rem; }
+.cover { aspect-ratio: 3 / 2; overflow: hidden; border-radius: var(--radius); background: var(--surface) center / cover;
+  box-shadow: var(--shadow); }
+.cover img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s var(--ease); }
+.album-card:hover .cover img { transform: scale(1.05); }
 
 /* ---- Photo grid ----------------------------------------------------------- */
 /* Justified rows: each tile's width follows its aspect ratio and rows stretch to fill. */

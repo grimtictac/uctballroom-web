@@ -69,9 +69,30 @@ def test_home_without_a_home_album_is_just_the_hero(storage, client):
     assert 'id="grid"' not in html and "Got two left feet" in html
 
 
-def test_albums_url_redirects_home(client):
+def test_home_links_to_the_albums_page(storage, client):
+    html = client.get("/").text
+    assert 'href="/albums/">Browse Photos</a>' in html
+
+
+def test_albums_page_lists_albums_but_not_the_home_album(app, storage, client):
+    add_photos(app, "home", 2)
+    add_photos(app, "medals-2026", 3, title="Medals 2026")
+    add_photos(app, "intervarsity", 1, title="Intervarsity 2026")
+    html = client.get("/albums/").text
+    assert 'href="/albums/medals-2026"' in html and 'href="/albums/intervarsity"' in html
+    assert 'href="/albums/home"' not in html
+    assert html.index("Intervarsity 2026") < html.index("Medals 2026")  # alphabetical by title
+    assert "3 photos" in html and "1 photo<" in html
+
+
+def test_albums_page_with_no_albums_is_just_empty(storage, client):
     r = client.get("/albums/")
-    assert r.status_code == 302 and r.headers["Location"] == "/"
+    assert r.status_code == 200 and "album-card" not in r.text
+
+
+def test_album_page_back_arrow_goes_to_the_albums_page(app, storage, client):
+    add_photos(app, "medals-2026", 1, title="Medals 2026")
+    assert 'href="/albums/" aria-label="Back to the albums"' in client.get("/albums/medals-2026").text
 
 
 def test_removed_pages_are_gone(storage, client):

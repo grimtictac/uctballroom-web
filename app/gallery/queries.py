@@ -1,10 +1,13 @@
 """Hand-written SQL for the gallery."""
 
+HOME_ALBUM = "home"  # slug of the album shown on the front page; it is not listed with the others
+
 # Manually pinned photos (sort_order set) come first, then by date taken.
 PHOTO_ORDER = "p.sort_order IS NULL, p.sort_order, p.taken_at IS NULL, p.taken_at, p.id"
 
 
-def list_albums(conn, limit=None):
+def list_albums(conn, exclude=HOME_ALBUM):
+    """All albums except `exclude`, alphabetically by title."""
     rows = conn.execute(
         """SELECT a.id, a.slug, a.title, a.description, a.event_date,
                   c.base_key AS cover_key, c.variants AS cover_variants,
@@ -12,9 +15,9 @@ def list_albums(conn, limit=None):
                   c.original_ext AS cover_ext,
                   (SELECT COUNT(*) FROM photos p WHERE p.album_id = a.id) AS photo_count
            FROM albums a LEFT JOIN photos c ON c.id = a.cover_photo_id
-           ORDER BY a.event_date IS NULL, a.event_date DESC, a.created_at DESC, a.id DESC
-           LIMIT ?""",
-        (limit if limit else -1,),  # -1 = no limit in SQLite
+           WHERE a.slug != ?
+           ORDER BY a.title COLLATE NOCASE, a.id""",
+        (exclude or "",),
     ).fetchall()
     albums = []
     for r in rows:

@@ -1,4 +1,4 @@
-from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, render_template, request
 
 from ..db import get_db
 from ..storage import get_storage
@@ -43,7 +43,7 @@ def helpers():
 
 @bp.get("/albums/")
 def albums():
-    return redirect(url_for("pages.home"))
+    return render_template("gallery/albums.html", albums=queries.list_albums(get_db()))
 
 
 def page_of(album, offset):
